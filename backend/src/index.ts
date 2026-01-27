@@ -47,5 +47,7 @@ app.get('/analytics/heatmap', authenticate, analyticsController.getHeatmapData);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 API available at http://localhost:${PORT}`);
+  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
 });

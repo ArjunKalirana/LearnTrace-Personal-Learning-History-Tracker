@@ -20,7 +20,20 @@ export default function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to login');
+      // Better error handling with detailed messages
+      console.error('Login error:', err);
+      
+      if (err.response) {
+        // Server responded with error
+        const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to login';
+        setError(errorMsg);
+      } else if (err.request) {
+        // Request made but no response (backend not running)
+        setError('Cannot connect to server. Make sure the backend is running on port 3001.');
+      } else {
+        // Something else happened
+        setError(err.message || 'Failed to login. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

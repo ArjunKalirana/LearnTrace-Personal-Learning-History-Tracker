@@ -17,17 +17,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      
+      if (token && savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+          // Verify token is still valid
+          await authAPI.getMe();
+        } catch (error) {
+          // Token invalid, clear storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
     
-    if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
-      // Verify token is still valid
-      authAPI.getMe().catch(() => {
-        logout();
-      });
-    }
-    setLoading(false);
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {

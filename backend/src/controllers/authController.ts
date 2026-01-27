@@ -37,10 +37,14 @@ export const login = [
       }
 
       const { email, password } = req.body;
+      console.log(`🔐 Login attempt for: ${email}`);
+      
       const result = await authService.login({ email, password });
       
+      console.log(`✅ Login successful for: ${email}`);
       res.json(result);
     } catch (error: any) {
+      console.error(`❌ Login failed for ${req.body.email}:`, error.message);
       res.status(401).json({ error: error.message });
     }
   }

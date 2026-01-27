@@ -14,7 +14,16 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    // Axios v1: config.headers may be undefined, a plain object, or an AxiosHeaders instance.
+    // Prefer using `.set()` when available to ensure the header is actually sent.
+    if (config.headers && typeof (config.headers as any).set === 'function') {
+      (config.headers as any).set('Authorization', `Bearer ${token}`);
+    } else {
+      config.headers = {
+        ...(config.headers ?? {}),
+        Authorization: `Bearer ${token}`,
+      } as any;
+    }
   }
   return config;
 });
@@ -24,9 +33,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Avoid wiping auth on auth endpoints themselves (prevents confusing loops)
+      const url: string = error.config?.url || '';
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/signup');
+
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
