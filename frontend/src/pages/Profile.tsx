@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Download, LogOut } from 'lucide-react';
-import { entriesAPI, analyticsAPI } from '../utils/api';
-import { LearningEntry, DashboardSummary } from '../types';
-import { format } from 'date-fns';
+import { Download, LogOut, User as UserIcon, Mail, Shield, Database, Activity, Trophy, Code, Info } from 'lucide-react';
+import { analyticsAPI, userAPI } from '../utils/api';
+import { DashboardSummary } from '../types';
+// date-fns format import removed as it was unused in this version
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -22,151 +22,167 @@ export default function Profile() {
       setSummary(data);
     } catch (error) {
       console.error('Failed to load profile data', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const exportData = async (format: 'json' | 'csv') => {
+  const handleExport = async (formatType: 'json' | 'csv') => {
+    setExporting(formatType);
     try {
-      const entries = await entriesAPI.getAll();
-      
-      if (format === 'json') {
-        const dataStr = JSON.stringify(entries, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `learntrace-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-      } else {
-        // CSV export
-        const headers = ['Title', 'Platform', 'Domain', 'Sub-domain', 'Start Date', 'Completion Date', 'Skills', 'Description', 'Reflection'];
-        const csvRows = [
-          headers.join(','),
-          ...entries.map((entry) => {
-            return [
-              `"${entry.title.replace(/"/g, '""')}"`,
-              `"${entry.platform.replace(/"/g, '""')}"`,
-              `"${entry.domain.replace(/"/g, '""')}"`,
-              `"${(entry.subDomain || '').replace(/"/g, '""')}"`,
-              format(new Date(entry.startDate), 'yyyy-MM-dd'),
-              format(new Date(entry.completionDate), 'yyyy-MM-dd'),
-              `"${entry.skills.join('; ').replace(/"/g, '""')}"`,
-              `"${(entry.description || '').replace(/"/g, '""')}"`,
-              `"${(entry.reflection || '').replace(/"/g, '""')}"`,
-            ].join(',');
-          }),
-        ];
-        
-        const csv = csvRows.join('\n');
-        const dataBlob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `learntrace-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
+      await userAPI.exportData(formatType);
     } catch (error) {
       console.error('Failed to export data', error);
-      alert('Failed to export data');
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setExporting(null);
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
-    <div>
-      <h1 className="text-h1 text-deep-blue mb-8">Profile & Settings</h1>
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+      <header className="mb-12">
+        <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Account</h1>
+        <p className="text-gray-500 mt-2 font-medium">Manage your profile and data footprint.</p>
+      </header>
 
-      <div className="space-y-6">
-        {/* Profile Info */}
-        <div className="bg-card rounded-card shadow-soft p-6">
-          <h2 className="text-h2 text-deep-blue mb-6">Profile Information</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
-              <p className="text-lg text-deep-blue">
-                {user.firstName} {user.lastName}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
-              <p className="text-lg text-deep-blue">{user.email}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Member Since</label>
-              <p className="text-lg text-deep-blue">
-                {format(new Date(user.createdAt), 'MMMM d, yyyy')}
-              </p>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+        {/* Left Side: Stats and Info */}
+        <div className="lg:col-span-2 space-y-12">
+            {/* User Card */}
+            <section className="bg-white rounded-[32px] border border-gray-100 p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] scale-150 rotate-12 pointer-events-none">
+                    <UserIcon size={200} />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8 relative">
+                    <div className="h-24 w-24 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/20">
+                        {user.firstName[0]}{user.lastName[0]}
+                    </div>
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-900">{user.firstName} {user.lastName}</h2>
+                        <div className="flex flex-wrap gap-4 mt-3">
+                            <div className="flex items-center gap-2 text-gray-400 font-medium text-sm">
+                                <Mail className="h-4 w-4" />
+                                {user.email}
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-400 font-medium text-sm">
+                                <Shield className="h-4 w-4 text-emerald-500" />
+                                Secured Account
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12 pt-10 border-t border-gray-50">
+                    <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                             <Activity className="h-3 w-3" />
+                             Activity Streak
+                        </span>
+                        <p className="text-xl font-bold text-gray-900">{summary?.streak || 0} Days</p>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                             <Trophy className="h-3 w-3" />
+                             Milestones
+                        </span>
+                        <p className="text-xl font-bold text-gray-900">{summary?.totalEntries || 0}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                             <Code className="h-3 w-3" />
+                             Skill Depth
+                        </span>
+                        <p className="text-xl font-bold text-gray-900">{summary?.uniqueSkills || 0} Areas</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Data Management Section */}
+            <section className="bg-gray-50 rounded-[32px] p-10 border border-gray-100">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="h-10 w-10 bg-white rounded-2xl flex items-center justify-center text-gray-900 shadow-sm">
+                        <Database className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">Data Management</h2>
+                        <p className="text-xs text-gray-500 font-medium">Your learning history belongs to you.</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-gray-900">Archive Locally</h3>
+                        <p className="text-sm text-gray-500 leading-relaxed">
+                            Download your entire learning history. We support standard portable formats for your personal records or for importing into other tools.
+                        </p>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={() => handleExport('json')}
+                            disabled={!!exporting}
+                            className="w-full flex items-center justify-between px-6 py-4 bg-white border border-gray-100 rounded-2xl hover:border-gray-200 hover:shadow-sm transition-all group disabled:opacity-50"
+                        >
+                            <span className="text-sm font-bold text-gray-700">Export as JSON</span>
+                            {exporting === 'json' ? (
+                                <span className="h-4 w-4 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+                            ) : (
+                                <Download className="h-4 w-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                            )}
+                        </button>
+                        <button
+                            onClick={() => handleExport('csv')}
+                            disabled={!!exporting}
+                            className="w-full flex items-center justify-between px-6 py-4 bg-white border border-gray-100 rounded-2xl hover:border-gray-200 hover:shadow-sm transition-all group disabled:opacity-50"
+                        >
+                            <span className="text-sm font-bold text-gray-700">Export as CSV</span>
+                            {exporting === 'csv' ? (
+                                <span className="h-4 w-4 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+                            ) : (
+                                <Download className="h-4 w-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </section>
         </div>
 
-        {/* Stats Summary */}
-        {!loading && summary && (
-          <div className="bg-card rounded-card shadow-soft p-6">
-            <h2 className="text-h2 text-deep-blue mb-6">Learning Statistics</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <div className="text-sm text-gray-500 mb-1">Total Entries</div>
-                <div className="text-2xl font-bold text-deep-blue">{summary.totalEntries}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 mb-1">Total Hours</div>
-                <div className="text-2xl font-bold text-deep-blue">{summary.totalHours}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 mb-1">Current Streak</div>
-                <div className="text-2xl font-bold text-deep-blue">{summary.streak} days</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 mb-1">Unique Skills</div>
-                <div className="text-2xl font-bold text-deep-blue">{summary.uniqueSkills}</div>
-              </div>
+        {/* Right Side: Account Actions */}
+        <aside className="space-y-8">
+            <div className="bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm space-y-8">
+                <div>
+                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Security & Session</h3>
+                   <div className="space-y-4">
+                       <div className="p-4 bg-gray-50 rounded-2xl flex items-center gap-3">
+                           <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                           <span className="text-xs font-bold text-gray-700">Active Session</span>
+                       </div>
+                   </div>
+                </div>
+
+                <div className="h-px bg-gray-50" />
+
+                <button
+                    onClick={logout}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all active:scale-95"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                </button>
             </div>
-          </div>
-        )}
 
-        {/* Data Export */}
-        <div className="bg-card rounded-card shadow-soft p-6">
-          <h2 className="text-h2 text-deep-blue mb-6">Data Export</h2>
-          <p className="text-gray-600 mb-4">
-            Export all your learning entries in JSON or CSV format.
-          </p>
-          <div className="flex gap-4">
-            <button
-              onClick={() => exportData('json')}
-              className="flex items-center space-x-2 px-6 py-3 bg-primary text-white rounded-button hover:bg-blue-600 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              <span>Export as JSON</span>
-            </button>
-            <button
-              onClick={() => exportData('csv')}
-              className="flex items-center space-x-2 px-6 py-3 bg-primary text-white rounded-button hover:bg-blue-600 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              <span>Export as CSV</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Logout */}
-        <div className="bg-card rounded-card shadow-soft p-6">
-          <h2 className="text-h2 text-deep-blue mb-6">Account Actions</h2>
-          <button
-            onClick={logout}
-            className="flex items-center space-x-2 px-6 py-3 bg-alert-red text-white rounded-button hover:bg-red-700 transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
-          </button>
-        </div>
+            <div className="p-8 bg-blue-600 rounded-[32px] text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group">
+                <div className="absolute -top-4 -right-4 h-24 w-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                <div className="relative">
+                    <Info className="h-6 w-6 mb-4 opacity-50" />
+                    <p className="text-sm font-bold mb-2">Did you know?</p>
+                    <p className="text-xs text-blue-100 leading-relaxed">
+                        LearnTrace automatically calculates your learning velocity based on your completion dates. Keep logging to improve your accuracy!
+                    </p>
+                </div>
+            </div>
+        </aside>
       </div>
     </div>
   );

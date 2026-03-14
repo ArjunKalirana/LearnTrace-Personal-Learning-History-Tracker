@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
 import { analyticsAPI } from '../utils/api';
-import { format, startOfYear, endOfYear, eachDayOfInterval, isSameDay, addDays } from 'date-fns';
-
-interface HeatmapData {
-  date: Date;
-  count: number;
-  hours: number;
-}
+import { format, startOfYear, endOfYear, eachDayOfInterval } from 'date-fns';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 
 export default function Heatmap() {
   const [heatmapData, setHeatmapData] = useState<Record<string, { count: number; hours: number }>>({});
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     loadHeatmap();
@@ -30,53 +26,46 @@ export default function Heatmap() {
 
   const getIntensity = (count: number, maxCount: number): number => {
     if (maxCount === 0) return 0;
-    return Math.min(count / maxCount, 1);
+    if (count === 0) return 0;
+    return Math.max(0.1, Math.min(count / maxCount, 1));
   };
 
-  const getColorClass = (intensity: number): string => {
-    if (intensity === 0) return 'bg-gray-100';
-    if (intensity < 0.25) return 'bg-gray-300';
-    if (intensity < 0.5) return 'bg-blue-300';
-    if (intensity < 0.75) return 'bg-blue-500';
-    return 'bg-deep-blue';
+  const getColor = (intensity: number): string => {
+    if (intensity === 0) return 'rgba(243, 244, 246, 1)'; // bg-gray-100
+    // Lighter to darker blue based on intensity
+    return `rgba(59, 130, 246, ${0.1 + intensity * 0.9})`; 
   };
 
-  // Generate calendar data for the current year
-  const currentYear = new Date().getFullYear();
-  const yearStart = startOfYear(new Date(currentYear, 0, 1));
-  const yearEnd = endOfYear(new Date(currentYear, 11, 31));
+  // Generate calendar data
+  const yearStart = startOfYear(new Date(selectedYear, 0, 1));
+  const yearEnd = endOfYear(new Date(selectedYear, 11, 31));
   const allDays = eachDayOfInterval({ start: yearStart, end: yearEnd });
 
   // Get max count for normalization
   const maxCount = Math.max(...Object.values(heatmapData).map((d) => d.count), 1);
 
-  // Group days by week (starting from Sunday)
-  const firstDayOfYear = allDays[0];
-  const firstDayWeekDay = firstDayOfYear.getDay(); // 0 = Sunday, 6 = Saturday
+  // Group days by week
+  const firstDayWeekDay = yearStart.getDay();
   
-  const weeks: Date[][] = [];
-  let currentWeek: Date[] = [];
-  
-  // Add padding days before year start to align with Sunday
+  // Padding for first week
   if (firstDayWeekDay > 0) {
-    for (let i = firstDayWeekDay - 1; i >= 0; i--) {
-      currentWeek.push(addDays(firstDayOfYear, -(i + 1)));
+    for (let i = 0; i < firstDayWeekDay; i++) {
+        // Use a special null or placeholder? We'll just manage offsets in rendering.
     }
   }
   
-  // Add all days of the year
+  // Re-approach: build a grid of 7 rows (Sun-Sat)
+  const grid: (Date | null)[][] = Array.from({ length: 7 }, () => []);
+  
+  // Add leading placeholders
+  for (let i = 0; i < firstDayWeekDay; i++) {
+    grid[i].push(null);
+  }
+  
   allDays.forEach((day) => {
-    currentWeek.push(day);
-    if (currentWeek.length === 7) {
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
+    const dayOfWeek = day.getDay();
+    grid[dayOfWeek].push(day);
   });
-  
-  // Add remaining days as last week (don't pad - show partial week)
-  if (currentWeek.length > 0) {
-    weeks.push(currentWeek);
-  }
 
   const getDateKey = (date: Date): string => {
     return format(date, 'yyyy-MM-dd');
@@ -84,93 +73,128 @@ export default function Heatmap() {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-500">Loading heatmap...</div>
+      <div className="max-w-6xl mx-auto space-y-8 animate-pulse pb-20">
+         <div className="h-12 bg-gray-50 rounded-xl w-1/4" />
+         <div className="h-64 bg-gray-50 rounded-3xl" />
       </div>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-h1 text-deep-blue mb-8">Learning Heatmap</h1>
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Learning Heatmap</h1>
+          <p className="text-gray-500 mt-2 font-medium">Visualization of your daily consistency.</p>
+        </div>
+        
+        <div className="flex items-center bg-white border border-gray-100 rounded-2xl p-1 shadow-sm">
+            <button 
+                onClick={() => setSelectedYear(y => y - 1)}
+                className="p-2 hover:bg-gray-50 rounded-xl transition-colors"
+                title="Previous Year"
+            >
+                <ChevronLeft className="h-4 w-4 text-gray-400" />
+            </button>
+            <span className="px-4 text-sm font-bold text-gray-900">{selectedYear}</span>
+            <button 
+                onClick={() => setSelectedYear(y => y + 1)}
+                disabled={selectedYear >= new Date().getFullYear()}
+                className="p-2 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-30"
+                title="Next Year"
+            >
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
+        </div>
+      </header>
 
-      <div className="bg-card rounded-card shadow-soft p-6">
-        <div className="mb-6">
-          <p className="text-gray-600 mb-4">
-            This calendar shows your learning activity throughout {currentYear}. Darker colors indicate more activity.
-          </p>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">Less</span>
-            <div className="flex gap-1">
-              <div className="w-3 h-3 bg-gray-100 rounded"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded"></div>
-              <div className="w-3 h-3 bg-blue-300 rounded"></div>
-              <div className="w-3 h-3 bg-blue-500 rounded"></div>
-              <div className="w-3 h-3 bg-deep-blue rounded"></div>
+      <section className="bg-white rounded-[32px] border border-gray-100 p-10 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                    <CalendarIcon className="h-5 w-5" />
+                </div>
+                <div>
+                    <h2 className="text-lg font-bold text-gray-900">Activity Grid</h2>
+                    <p className="text-xs text-gray-400 font-medium">Daily resolution of learning efforts</p>
+                </div>
             </div>
-            <span className="text-sm text-gray-600">More</span>
-          </div>
+            
+            <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Less</span>
+                <div className="flex gap-1">
+                    {[0, 0.25, 0.5, 0.75, 1].map(v => (
+                        <div key={v} className="w-3 h-3 rounded-sm" style={{ backgroundColor: getColor(v) }} />
+                    ))}
+                </div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">More</span>
+            </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="flex gap-1" style={{ minWidth: 'max-content' }}>
-            {/* Day labels */}
-            <div className="flex flex-col gap-1 mr-2">
-              <div className="h-6"></div>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div key={day} className="h-3 w-12 text-xs text-gray-500 text-center">
-                  {day}
+        <div className="relative">
+            <div className="overflow-x-auto pb-4 custom-scrollbar">
+                <div className="flex flex-col gap-1.5 min-w-max">
+                    {grid.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex gap-1.5 items-center">
+                            <div className="w-8 text-[10px] font-bold text-gray-300 uppercase text-right mr-2">
+                                {rowIndex === 1 && 'Mon'}
+                                {rowIndex === 3 && 'Wed'}
+                                {rowIndex === 5 && 'Fri'}
+                            </div>
+                            {row.map((day, colIndex) => {
+                                if (!day) return <div key={`empty-${colIndex}`} className="w-3.5 h-3.5 bg-transparent" />;
+                                
+                                const dateKey = getDateKey(day);
+                                const data = heatmapData[dateKey];
+                                const count = data?.count || 0;
+                                const intensity = getIntensity(count, maxCount);
+                                const isHovered = hoveredDate === dateKey;
+                                
+                                return (
+                                    <div
+                                        key={dateKey}
+                                        className={`w-3.5 h-3.5 rounded-sm transition-all duration-200 cursor-crosshair ${
+                                            isHovered ? 'scale-150 z-10 shadow-lg ring-2 ring-white ring-offset-1 ring-offset-blue-500' : ''
+                                        }`}
+                                        style={{ backgroundColor: getColor(intensity) }}
+                                        onMouseEnter={() => setHoveredDate(dateKey)}
+                                        onMouseLeave={() => setHoveredDate(null)}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ))}
                 </div>
-              ))}
             </div>
 
-            {/* Calendar grid */}
-            <div className="flex gap-1">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-1">
-                  {/* Week label */}
-                  <div className="h-6 text-xs text-gray-500 text-center">
-                    {weekIndex % 4 === 0 && format(week[0], 'MMM d')}
-                  </div>
-                  {/* Days */}
-                  {week.map((day, dayIndex) => {
-                    const dateKey = getDateKey(day);
-                    const data = heatmapData[dateKey];
-                    const count = data?.count || 0;
-                    const hours = data?.hours || 0;
-                    const intensity = getIntensity(count, maxCount);
-                    const colorClass = getColorClass(intensity);
-                    const isHovered = hoveredDate === dateKey;
-
-                    return (
-                      <div
-                        key={dayIndex}
-                        className={`w-3 h-3 rounded ${colorClass} cursor-pointer hover:ring-2 hover:ring-primary transition-all ${
-                          isHovered ? 'ring-2 ring-primary scale-125' : ''
-                        }`}
-                        onMouseEnter={() => setHoveredDate(dateKey)}
-                        onMouseLeave={() => setHoveredDate(null)}
-                        title={`${format(day, 'MMM d, yyyy')}: ${count} entries, ${hours} hours`}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
+            {/* Hover State Detail Card */}
+            <div className="mt-12 flex items-center gap-6 p-6 bg-gray-50 rounded-2xl border border-gray-100/50">
+               {hoveredDate ? (
+                   <>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Selected Date</span>
+                            <span className="text-lg font-bold text-gray-900">{format(new Date(hoveredDate), 'MMMM do, yyyy')}</span>
+                        </div>
+                        <div className="h-10 w-px bg-gray-200" />
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Activity</span>
+                            <span className="text-lg font-bold text-blue-600">
+                                {heatmapData[hoveredDate]?.count || 0} Milestones
+                                <span className="text-gray-400 font-medium text-sm ml-2">
+                                    ({heatmapData[hoveredDate]?.hours || 0} hours)
+                                </span>
+                            </span>
+                        </div>
+                   </>
+               ) : (
+                   <div className="flex items-center gap-3 text-gray-400">
+                       <Info className="h-5 w-5" />
+                       <p className="text-sm font-medium">Hover over the squares to see activity details.</p>
+                   </div>
+               )}
             </div>
-          </div>
         </div>
-
-        {hoveredDate && heatmapData[hoveredDate] && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-button">
-            <p className="text-sm font-medium text-deep-blue">
-              {format(new Date(hoveredDate), 'MMMM d, yyyy')}
-            </p>
-            <p className="text-sm text-gray-600">
-              {heatmapData[hoveredDate].count} entries • {heatmapData[hoveredDate].hours} hours
-            </p>
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

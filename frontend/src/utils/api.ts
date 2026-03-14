@@ -121,4 +121,24 @@ export const analyticsAPI = {
   },
 };
 
+export const userAPI = {
+  exportData: async (format: 'json' | 'csv'): Promise<void> => {
+    const response = await api.get('/users/export', {
+      params: { format },
+      responseType: 'blob',
+    });
+    
+    // Create a temporary link element to trigger the download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const date = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `learntrace-export-${date}.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+};
+
 export default api;

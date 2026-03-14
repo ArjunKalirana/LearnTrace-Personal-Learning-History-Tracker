@@ -13,7 +13,7 @@ async function main() {
   console.log('Seeding database...');
 
   const email = 'secondarymail251045@gmail.com';
-  const password = 'pasword@123';
+  const password = 'password@123';
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({

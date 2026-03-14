@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Edit, Trash2, ArrowLeft, Calendar, Layout, Hash, MessageCircle, ExternalLink, Award } from 'lucide-react';
 import { entriesAPI } from '../utils/api';
 import { LearningEntry } from '../types';
 import { format } from 'date-fns';
@@ -49,18 +49,26 @@ export default function EntryDetail() {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-500">Loading...</div>
-      </div>
+        <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-10">
+            <div className="h-10 bg-gray-50 rounded-xl w-32" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="h-64 bg-gray-50 rounded-[32px]" />
+                    <div className="h-40 bg-gray-50 rounded-[32px]" />
+                </div>
+                <div className="h-96 bg-gray-50 rounded-[32px]" />
+            </div>
+        </div>
     );
   }
 
   if (!entry) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 mb-4">Entry not found</p>
-        <Link to="/dashboard" className="text-primary hover:underline">
-          Go to dashboard
+      <div className="max-w-4xl mx-auto py-20 text-center space-y-6">
+        <p className="text-xl font-bold text-gray-400">Milestone not found</p>
+        <Link to="/timeline" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline">
+          <ArrowLeft className="h-4 w-4" />
+          Return to Timeline
         </Link>
       </div>
     );
@@ -71,123 +79,166 @@ export default function EntryDetail() {
     : null;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-700 pt-6">
+      <header className="flex items-center justify-between mb-12">
         <Link
           to="/timeline"
-          className="flex items-center space-x-2 text-gray-600 hover:text-deep-blue"
+          className="group flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-all"
         >
-          <ArrowLeft className="h-5 w-5" />
-          <span>Back to Timeline</span>
+          <div className="p-2 transition-transform group-hover:-translate-x-1">
+            <ArrowLeft className="h-5 w-5" />
+          </div>
+          Timeline
         </Link>
-        <div className="flex gap-3">
+        
+        <div className="flex gap-4">
           <Link
             to={`/entries/${id}/edit`}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-button hover:bg-blue-600 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-100 text-gray-900 text-sm font-bold rounded-2xl hover:bg-gray-50 transition-all shadow-sm active:scale-95"
           >
             <Edit className="h-4 w-4" />
-            <span>Edit</span>
+            Edit
           </Link>
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="flex items-center space-x-2 px-4 py-2 bg-alert-red text-white rounded-button hover:bg-red-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 text-sm font-bold rounded-2xl hover:bg-red-100 transition-all active:scale-95 disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
-            <span>{deleting ? 'Deleting...' : 'Delete'}</span>
+            {deleting ? 'Removing...' : 'Delete'}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Certificate */}
-        <div>
-          {certificateUrl ? (
-            <div className="bg-card rounded-card shadow-soft p-4">
-              <img
-                src={certificateUrl}
-                alt={entry.title}
-                className="w-full rounded-button"
-              />
-            </div>
-          ) : (
-            <div className="bg-card rounded-card shadow-soft p-12 text-center border-2 border-dashed border-gray-300">
-              <p className="text-gray-500">No certificate uploaded</p>
-            </div>
-          )}
-        </div>
-
-        {/* Details */}
-        <div className="bg-card rounded-card shadow-soft p-6">
-          <h1 className="text-h1 text-deep-blue mb-6">{entry.title}</h1>
-
-          <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-12">
             <div>
-              <div className="text-sm font-medium text-gray-500 mb-1">Platform</div>
-              <div className="text-lg text-deep-blue">{entry.platform}</div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm font-medium text-gray-500 mb-1">Domain</div>
-                <div className="bg-blue-50 text-primary px-3 py-1 rounded-button inline-block font-medium">
-                  {entry.domain}
-                </div>
-              </div>
-              {entry.subDomain && (
-                <div>
-                  <div className="text-sm font-medium text-gray-500 mb-1">Sub-domain</div>
-                  <div className="text-lg text-deep-blue">{entry.subDomain}</div>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm font-medium text-gray-500 mb-1">Start Date</div>
-                <div className="text-lg text-deep-blue">
-                  {format(new Date(entry.startDate), 'MMM d, yyyy')}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-500 mb-1">Completion Date</div>
-                <div className="text-lg text-deep-blue">
-                  {format(new Date(entry.completionDate), 'MMM d, yyyy')}
-                </div>
-              </div>
-            </div>
-
-            {entry.skills.length > 0 && (
-              <div>
-                <div className="text-sm font-medium text-gray-500 mb-2">Skills</div>
-                <div className="flex flex-wrap gap-2">
-                  {entry.skills.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="bg-gray-100 text-gray-700 px-3 py-1 rounded-button text-sm"
-                    >
-                      {skill}
+                <div className="flex items-center gap-3 mb-4">
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest rounded-lg">
+                        {entry.domain}
                     </span>
-                  ))}
+                    {entry.subDomain && (
+                        <span className="text-gray-400 text-xs font-medium">• {entry.subDomain}</span>
+                    )}
                 </div>
-              </div>
-            )}
+                <h1 className="text-5xl font-bold text-gray-900 tracking-tight leading-tight mb-6">
+                    {entry.title}
+                </h1>
+                <p className="text-xl text-gray-500 font-medium leading-relaxed max-w-2xl">
+                    {entry.description || "No description provided for this milestone."}
+                </p>
+            </div>
 
-            {entry.description && (
-              <div>
-                <div className="text-sm font-medium text-gray-500 mb-2">Description</div>
-                <div className="text-deep-blue whitespace-pre-wrap">{entry.description}</div>
-              </div>
+            {certificateUrl && (
+                <section>
+                    <div className="flex items-center gap-2 mb-6">
+                        <Award className="h-4 w-4 text-orange-500" />
+                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Certificate of Achievement</h2>
+                    </div>
+                    <div className="relative group rounded-[32px] overflow-hidden bg-gray-900 border-8 border-white shadow-2xl ring-1 ring-gray-100">
+                        <img
+                            src={certificateUrl}
+                            alt={entry.title}
+                            className="w-full h-auto object-contain max-h-[600px] transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                             <a 
+                                href={certificateUrl} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 text-xs font-bold rounded-xl shadow-xl hover:scale-105 transition-transform"
+                             >
+                                <ExternalLink className="h-4 w-4" />
+                                View Full Image
+                             </a>
+                        </div>
+                    </div>
+                </section>
             )}
 
             {entry.reflection && (
-              <div>
-                <div className="text-sm font-medium text-gray-500 mb-2">Reflection</div>
-                <div className="text-deep-blue whitespace-pre-wrap">{entry.reflection}</div>
-              </div>
+                <section className="bg-blue-50/30 rounded-[32px] p-10 space-y-6">
+                    <div className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-blue-600" />
+                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Personal Reflection</h2>
+                    </div>
+                    <p className="text-lg text-gray-800 font-medium italic leading-relaxed whitespace-pre-wrap">
+                        "{entry.reflection}"
+                    </p>
+                </section>
             )}
-          </div>
         </div>
+
+        {/* Sidebar Info */}
+        <aside className="sticky top-8 space-y-10">
+            <div className="bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm space-y-8">
+                <div className="space-y-6">
+                    <div>
+                        <div className="flex items-center gap-2 text-gray-400 mb-2">
+                            <Layout className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Source Platform</span>
+                        </div>
+                        <p className="text-lg font-bold text-gray-900">{entry.platform}</p>
+                    </div>
+
+                    <div className="h-px bg-gray-50" />
+
+                    <div>
+                        <div className="flex items-center gap-2 text-gray-400 mb-2">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Timeline</span>
+                        </div>
+                        <div className="space-y-4 pt-2">
+                            <div className="flex items-center gap-4">
+                                <div className="h-2 w-2 rounded-full bg-gray-200" />
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Started</p>
+                                    <p className="text-sm font-bold text-gray-900">{format(new Date(entry.startDate), 'MMM d, yyyy')}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-50" />
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Completed</p>
+                                    <p className="text-sm font-bold text-gray-900">{format(new Date(entry.completionDate), 'MMM d, yyyy')}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {entry.skills.length > 0 && (
+                    <>
+                        <div className="h-px bg-gray-50" />
+                        <div>
+                            <div className="flex items-center gap-2 text-gray-400 mb-4">
+                                <Hash className="h-3.5 w-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Competencies</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {entry.skills.map((skill, idx) => (
+                                    <span
+                                        key={idx}
+                                        className="px-3 py-1.5 bg-gray-50 text-gray-600 text-xs font-bold rounded-xl"
+                                    >
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            <div className="p-8 bg-gray-900 rounded-[32px] text-white space-y-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Quick Share</p>
+                <div className="flex gap-2">
+                    <button className="flex-1 py-3 bg-white/10 hover:bg-white/20 transition-colors rounded-xl text-xs font-bold">Copy Link</button>
+                    <button className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 transition-colors rounded-xl text-xs font-bold">Download PDF</button>
+                </div>
+            </div>
+        </aside>
       </div>
     </div>
   );

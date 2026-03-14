@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { entriesAPI } from '../utils/api';
 import { LearningEntry } from '../types';
-import { X } from 'lucide-react';
+import { X, Search, Filter, Award, Maximize2, ExternalLink } from 'lucide-react';
 
 const DOMAINS = [
   'Programming',
@@ -35,7 +35,6 @@ export default function BadgeVault() {
         domain: filterDomain || undefined,
         platform: filterPlatform || undefined,
       });
-      // Filter entries that have certificates
       const entriesWithCertificates = data.filter((entry) => entry.certificatePath);
       setEntries(entriesWithCertificates);
     } catch (error) {
@@ -59,62 +58,65 @@ export default function BadgeVault() {
   ).sort();
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-h1 text-deep-blue">Badge Vault</h1>
-      </div>
+    <div className="max-w-7xl mx-auto pb-20 animate-in fade-in duration-700">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Badge Vault</h1>
+          <p className="text-gray-500 mt-2 font-medium">A curated selection of your verified achievements.</p>
+        </div>
+      </header>
 
-      {/* Filters */}
-      <div className="bg-card rounded-card shadow-soft p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Domain</label>
+      {/* Modern Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4 mb-12 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+        <div className="flex-1 relative group">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             <select
-              value={filterDomain}
-              onChange={(e) => setFilterDomain(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary"
+                value={filterDomain}
+                onChange={(e) => setFilterDomain(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border-transparent rounded-2xl text-sm font-bold text-gray-900 focus:ring-0 focus:bg-white transition-all appearance-none cursor-pointer"
             >
-              <option value="">All domains</option>
-              {DOMAINS.map((domain) => (
-                <option key={domain} value={domain}>
-                  {domain}
-                </option>
-              ))}
+                <option value="">All Domains</option>
+                {DOMAINS.map((domain) => (
+                    <option key={domain} value={domain}>{domain}</option>
+                ))}
             </select>
-          </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Platform</label>
+        <div className="flex-1 relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             <select
-              value={filterPlatform}
-              onChange={(e) => setFilterPlatform(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary"
+                value={filterPlatform}
+                onChange={(e) => setFilterPlatform(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border-transparent rounded-2xl text-sm font-bold text-gray-900 focus:ring-0 focus:bg-white transition-all appearance-none cursor-pointer"
             >
-              <option value="">All platforms</option>
-              {uniquePlatforms.map((platform) => (
-                <option key={platform} value={platform}>
-                  {platform}
-                </option>
-              ))}
+                <option value="">All Platforms</option>
+                {uniquePlatforms.map((platform) => (
+                    <option key={platform} value={platform}>{platform}</option>
+                ))}
             </select>
-          </div>
         </div>
       </div>
 
-      {/* Gallery */}
+      {/* Gallery Grid */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="text-gray-500">Loading...</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-pulse">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="aspect-[4/3] bg-gray-50 rounded-[32px]" />
+          ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="bg-card rounded-card shadow-soft p-12 text-center">
-          <p className="text-gray-500 mb-4">No certificates found</p>
-          <Link to="/entries/new" className="text-primary hover:underline">
-            Add an entry with a certificate
-          </Link>
+        <div className="max-w-md mx-auto py-20 text-center space-y-6">
+            <div className="h-20 w-20 bg-gray-50 rounded-[30px] flex items-center justify-center text-gray-300 mx-auto border border-gray-100 shadow-sm">
+                <Award size={40} />
+            </div>
+            <p className="text-gray-900 font-bold text-xl">Vault Empty</p>
+            <p className="text-gray-400 text-sm">You haven't uploaded any certificates yet. Achievements will appear here once verified.</p>
+            <Link to="/entries/new" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline">
+                Collect your first badge <ExternalLink className="h-4 w-4" />
+            </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {entries.map((entry) => {
             const certificateUrl = entry.certificatePath
               ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${entry.certificatePath}`
@@ -125,23 +127,28 @@ export default function BadgeVault() {
             return (
               <div
                 key={entry.id}
-                className="bg-card rounded-card shadow-soft overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                className="group relative bg-white rounded-[40px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500"
                 onClick={() => openPreview(entry.certificatePath!)}
               >
-                <div className="aspect-square bg-gray-100">
+                <div className="aspect-[3/4] overflow-hidden bg-gray-900">
                   <img
                     src={certificateUrl}
                     alt={entry.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90 group-hover:opacity-100"
                   />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-deep-blue mb-1 truncate">{entry.title}</h3>
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span className="truncate">{entry.platform}</span>
-                    <span className="bg-blue-50 text-primary px-2 py-0.5 rounded-button text-xs">
-                      {entry.domain}
-                    </span>
+                  <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest rounded">
+                            {entry.domain}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-white leading-tight mb-1">{entry.title}</h3>
+                      <p className="text-xs text-white/60 font-medium">{entry.platform}</p>
+                  </div>
+                  
+                  {/* Hover Overlay Icon */}
+                  <div className="absolute top-6 right-6 p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-300 text-white">
+                      <Maximize2 className="h-5 w-5" />
                   </div>
                 </div>
               </div>
@@ -150,25 +157,37 @@ export default function BadgeVault() {
         </div>
       )}
 
-      {/* Full-screen Preview */}
+      {/* Immersive Gallery Modal */}
       {previewImage && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-gray-950/90 z-50 flex items-center justify-center p-6 sm:p-12 animate-in fade-in zoom-in duration-300 backdrop-blur-2xl"
           onClick={closePreview}
         >
-          <div className="relative max-w-4xl max-h-full">
+          <div className="relative w-full max-w-5xl h-full flex flex-col items-center justify-center">
             <button
               onClick={closePreview}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300"
+              className="absolute -top-4 -right-4 sm:top-0 sm:right-0 p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-10"
             >
               <X className="h-6 w-6" />
             </button>
-            <img
-              src={previewImage}
-              alt="Certificate preview"
-              className="max-w-full max-h-[90vh] object-contain rounded-button"
-              onClick={(e) => e.stopPropagation()}
-            />
+            <div className="relative w-full h-full flex items-center justify-center py-10" onClick={(e) => e.stopPropagation()}>
+                <img
+                  src={previewImage}
+                  alt="Certificate preview"
+                  className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl ring-1 ring-white/10"
+                />
+            </div>
+            <div className="mt-6 flex gap-4">
+                 <a 
+                    href={previewImage} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="px-8 py-3 bg-white text-gray-900 rounded-2xl text-sm font-bold shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                >
+                    <ExternalLink className="h-4 w-4" />
+                    Open Source 
+                 </a>
+            </div>
           </div>
         </div>
       )}

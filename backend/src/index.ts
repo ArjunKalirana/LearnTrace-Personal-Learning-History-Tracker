@@ -7,6 +7,7 @@ import { authenticate } from './middleware/auth';
 import * as authController from './controllers/authController';
 import * as entryController from './controllers/entryController';
 import * as analyticsController from './controllers/analyticsController';
+import * as userController from './controllers/userController';
 import { upload } from './utils/upload';
 
 dotenv.config();
@@ -43,11 +44,29 @@ app.get('/analytics/platform-usage', authenticate, analyticsController.getPlatfo
 app.get('/analytics/skills-frequency', authenticate, analyticsController.getSkillsFrequency);
 app.get('/analytics/heatmap', authenticate, analyticsController.getHeatmapData);
 
+app.get('/users/export', authenticate, userController.exportData);
+
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-});
+import prisma from './lib/prisma';
+
+const startServer = async () => {
+  try {
+    // Check database connection before starting the server
+    await prisma.$connect();
+    console.log('📦 Connected to database successfully.');
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 API available at http://localhost:${PORT}`);
+      console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to connect to the database. Please check your DATABASE_URL configuration.');
+    console.error(error);
+    process.exit(1);
+  }
+};
+
+startServer();

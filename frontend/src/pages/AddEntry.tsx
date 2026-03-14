@@ -3,8 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { entriesAPI } from '../utils/api';
 import { TagInput } from '../components/TagInput';
-import { X } from 'lucide-react';
-import type { LearningEntry } from '../types';
+import { X, UploadCloud, FileText, Calendar, Globe, Sparkles } from 'lucide-react';
 
 const DOMAINS = [
   'Programming',
@@ -39,13 +38,13 @@ export default function AddEntry() {
   const [certificatePreview, setCertificatePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<FormData>();
 
   useEffect(() => {
@@ -75,20 +74,40 @@ export default function AddEntry() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
+  const processFile = (file: File) => {
+    if (file.type.startsWith('image/')) {
         setCertificate(file);
         const reader = new FileReader();
         reader.onloadend = () => {
           setCertificatePreview(reader.result as string);
         };
         reader.readAsDataURL(file);
+        setError('');
       } else {
-        setError('Please select an image file');
+        setError('Please select an image file (PNG, JPG, WebP)');
       }
-    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   };
 
   const removeCertificate = () => {
@@ -128,188 +147,190 @@ export default function AddEntry() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="text-h1 text-deep-blue mb-8">
-        {isEditing ? 'Edit Entry' : 'Add Learning Entry'}
-      </h1>
+    <div className="max-w-4xl mx-auto pb-20 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
+            {isEditing ? 'Edit Entry' : 'New Milestone'}
+          </h1>
+          <p className="text-gray-500 mt-2 font-medium">Record what you've achieved today.</p>
+        </div>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
 
-      <div className="bg-card rounded-card shadow-soft p-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-alert-red text-alert-red px-4 py-3 rounded-button">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title <span className="text-alert-red">*</span>
-            </label>
-            <input
-              {...register('title', { required: 'Title is required' })}
-              autoFocus
-              className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="e.g., Complete React Course"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-alert-red">{errors.title.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Platform <span className="text-alert-red">*</span>
-              </label>
-              <input
-                {...register('platform', { required: 'Platform is required' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="e.g., Coursera, Udemy"
-              />
-              {errors.platform && (
-                <p className="mt-1 text-sm text-alert-red">{errors.platform.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Domain <span className="text-alert-red">*</span>
-              </label>
-              <select
-                {...register('domain', { required: 'Domain is required' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">Select domain</option>
-                {DOMAINS.map((domain) => (
-                  <option key={domain} value={domain}>
-                    {domain}
-                  </option>
-                ))}
-              </select>
-              {errors.domain && (
-                <p className="mt-1 text-sm text-alert-red">{errors.domain.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sub-domain (optional)
-            </label>
-            <input
-              {...register('subDomain')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="e.g., Frontend Development"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Date <span className="text-alert-red">*</span>
-              </label>
-              <input
-                type="date"
-                {...register('startDate', { required: 'Start date is required' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              {errors.startDate && (
-                <p className="mt-1 text-sm text-alert-red">{errors.startDate.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Completion Date <span className="text-alert-red">*</span>
-              </label>
-              <input
-                type="date"
-                {...register('completionDate', { required: 'Completion date is required' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              {errors.completionDate && (
-                <p className="mt-1 text-sm text-alert-red">{errors.completionDate.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Skills
-            </label>
-            <TagInput tags={skills} onChange={setSkills} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              {...register('description')}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Brief description of what you learned..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Reflection Notes
-            </label>
-            <textarea
-              {...register('reflection')}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Your thoughts and takeaways..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Certificate (Image)
-            </label>
-            {certificatePreview ? (
-              <div className="relative inline-block">
-                <img
-                  src={certificatePreview}
-                  alt="Certificate preview"
-                  className="max-w-xs max-h-48 rounded-button border border-gray-300"
-                />
-                <button
-                  type="button"
-                  onClick={removeCertificate}
-                  className="absolute top-2 right-2 bg-alert-red text-white p-1 rounded-full hover:bg-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Main Form */}
+        <div className="lg:col-span-2">
+          <form id="entry-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium animate-in slide-in-from-top-2">
+                {error}
               </div>
-            ) : (
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
             )}
-          </div>
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-primary text-white py-3 rounded-button font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Saving...' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="px-6 py-3 border border-gray-300 rounded-button font-medium hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+            <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">General Information</h2>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Milestone Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        {...register('title', { required: 'Title is required' })}
+                        autoFocus
+                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/10 transition-all font-medium"
+                        placeholder="e.g., Advanced TypeScript Masterclass"
+                    />
+                    {errors.title && <p className="mt-1.5 text-xs text-red-500 font-bold ml-1">{errors.title.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Platform</label>
+                        <input
+                            {...register('platform', { required: 'Platform is required' })}
+                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10"
+                            placeholder="e.g., Udemy, YouTube"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Domain</label>
+                        <select
+                            {...register('domain', { required: 'Domain is required' })}
+                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10 cursor-pointer"
+                        >
+                            <option value="">Select Domain</option>
+                            {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                    <textarea
+                        {...register('description')}
+                        rows={3}
+                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10"
+                        placeholder="What was this course about?"
+                    />
+                </div>
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Time & Skills</h2>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
+                        <input
+                            type="date"
+                            {...register('startDate', { required: true })}
+                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Completion Date</label>
+                        <input
+                            type="date"
+                            {...register('completionDate', { required: true })}
+                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Skills Acquired</label>
+                    <TagInput tags={skills} onChange={setSkills} />
+                </div>
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-blue-600" />
+                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Deep Reflection</h2>
+                </div>
+                <textarea
+                    {...register('reflection')}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10"
+                    placeholder="Key takeaways, challenges faced, or how you'll apply this knowledge..."
+                />
+            </section>
+          </form>
+        </div>
+
+        {/* Sidebar: Media & Actions */}
+        <aside className="space-y-8">
+            <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-6">
+                    <Globe className="h-4 w-4 text-blue-600" />
+                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Proof of Learning</h2>
+                </div>
+
+                <div 
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`relative rounded-2xl border-2 border-dashed transition-all duration-300 group flex flex-col items-center justify-center p-8 text-center ${
+                        isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                    } ${certificatePreview ? 'p-2' : ''}`}
+                >
+                    {certificatePreview ? (
+                        <div className="relative w-full group/preview">
+                            <img src={certificatePreview} alt="Preview" className="w-full h-auto rounded-xl object-contain bg-black/5" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-sm">
+                                <button
+                                    type="button"
+                                    onClick={removeCertificate}
+                                    className="p-3 bg-white text-red-600 rounded-full hover:scale-110 transition-transform shadow-xl"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                                <UploadCloud className="h-6 w-6" />
+                            </div>
+                            <p className="text-sm font-bold text-gray-900">Drag certificate here</p>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+                            <label className="mt-4 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
+                                Choose File
+                                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                            </label>
+                        </>
+                    )}
+                </div>
+            </section>
+
+            <div className="sticky top-8 space-y-4">
+                <button
+                    form="entry-form"
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50"
+                >
+                    {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                             <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                             Saving...
+                        </span>
+                    ) : isEditing ? 'Update Entry' : 'Publish Milestone'}
+                </button>
+            </div>
+        </aside>
       </div>
     </div>
   );

@@ -45,7 +45,7 @@ export const login = [
       res.json(result);
     } catch (error: any) {
       console.error(`❌ Login failed for ${req.body.email}:`, error.message);
-      res.status(401).json({ error: error.message });
+      res.status(401).json({ error: 'Invalid email or password' });
     }
   }
 ];

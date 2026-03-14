@@ -2,6 +2,14 @@ import { Request, Response } from 'express';
 import { body, validationResult, query } from 'express-validator';
 import { AuthRequest } from '../types';
 import * as entryService from '../services/entryService';
+import fs from 'fs';
+import path from 'path';
+
+// Ensure the uploads directory exists before processing any file upload
+const certDir = path.join(__dirname, '../../uploads/certificates');
+if (!fs.existsSync(certDir)) {
+  fs.mkdirSync(certDir, { recursive: true });
+}
 
 export const createEntry = [
   body('title').trim().notEmpty().withMessage('Title is required'),
