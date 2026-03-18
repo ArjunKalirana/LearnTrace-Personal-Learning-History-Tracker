@@ -20,22 +20,37 @@ export const getSummary = async (userId: string) => {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    let currentDate = new Date(today);
-    let entryIndex = 0;
-    
-    while (entryIndex < sortedEntries.length) {
-      const entryDate = new Date(sortedEntries[entryIndex].completionDate);
-      entryDate.setHours(0, 0, 0, 0);
-      
-      if (entryDate.getTime() === currentDate.getTime()) {
-        streak++;
-        entryIndex++;
-        currentDate.setDate(currentDate.getDate() - 1);
-      } else if (entryDate.getTime() < currentDate.getTime()) {
-        break;
-      } else {
-        entryIndex++;
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const mostRecentDate = new Date(sortedEntries[0].completionDate);
+    mostRecentDate.setHours(0, 0, 0, 0);
+
+    const mostRecentTime = mostRecentDate.getTime();
+
+    if (
+      mostRecentTime !== today.getTime() &&
+      mostRecentTime !== yesterday.getTime()
+    ) {
+      // streak is already 0, skip the loop entirely
+    } else {
+      let currentDate = mostRecentTime === today.getTime() ? new Date(today) : new Date(yesterday);
+      let entryIndex = 0;
+
+      while (entryIndex < sortedEntries.length) {
+        const entryDate = new Date(sortedEntries[entryIndex].completionDate);
+        entryDate.setHours(0, 0, 0, 0);
+
+        if (entryDate.getTime() === currentDate.getTime()) {
+          streak++;
+          entryIndex++;
+          currentDate.setDate(currentDate.getDate() - 1);
+        } else if (entryDate.getTime() < currentDate.getTime()) {
+          break;
+        } else {
+          entryIndex++;
+        }
       }
     }
   }
