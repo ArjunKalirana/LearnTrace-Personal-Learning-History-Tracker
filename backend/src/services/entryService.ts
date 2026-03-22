@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+import path from 'path';
 import prisma from '../lib/prisma';
 
 export interface CreateEntryData {
@@ -94,6 +96,15 @@ export const deleteEntry = async (userId: string, entryId: string) => {
   const entry = await getEntryById(userId, entryId);
   if (!entry) {
     throw new Error('Entry not found');
+  }
+
+  if (entry.certificatePath) {
+    try {
+      const absolutePath = path.join(__dirname, '../../', entry.certificatePath);
+      await fs.unlink(absolutePath);
+    } catch (error) {
+      console.error('Failed to delete certificate file:', error);
+    }
   }
 
   return prisma.learningEntry.delete({

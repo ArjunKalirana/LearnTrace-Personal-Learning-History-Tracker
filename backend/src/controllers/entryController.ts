@@ -125,6 +125,10 @@ export const updateEntry = [
 
       const userId = req.userId!;
       const { id } = req.params;
+      
+      // Before calling entryService.updateEntry, fetch the existing entry
+      const existingEntry = await entryService.getEntryById(userId, id);
+      
       const data: any = {};
       
       if (req.body.title !== undefined) data.title = req.body.title;
@@ -145,7 +149,20 @@ export const updateEntry = [
       }
       if (req.body.description !== undefined) data.description = req.body.description || undefined;
       if (req.body.reflection !== undefined) data.reflection = req.body.reflection || undefined;
-      if (req.file) data.certificatePath = `/uploads/certificates/${req.file.filename}`;
+      
+      if (req.file) {
+        data.certificatePath = `/uploads/certificates/${req.file.filename}`;
+        
+        // If req.file exists AND existing entry has a certificatePath, delete the old file
+        if (existingEntry?.certificatePath) {
+          try {
+            const absolutePath = path.join(__dirname, '../../', existingEntry.certificatePath);
+            await fs.promises.unlink(absolutePath);
+          } catch (error) {
+            console.error('Failed to delete old certificate file:', error);
+          }
+        }
+      }
 
       const hoursSpent = req.body.hoursSpent ? parseInt(req.body.hoursSpent, 10) : undefined;
       if (hoursSpent !== undefined) data.hoursSpent = hoursSpent;
