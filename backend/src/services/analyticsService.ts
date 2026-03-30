@@ -23,14 +23,15 @@ export const getSummary = async (userId: string) => {
       b.completionDate.getTime() - a.completionDate.getTime()
     );
     
+    // Use UTC consistently to avoid server-local timezone mismatch
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
 
     const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const mostRecentDate = new Date(sortedEntries[0].completionDate);
-    mostRecentDate.setHours(0, 0, 0, 0);
+    mostRecentDate.setUTCHours(0, 0, 0, 0);
 
     const mostRecentTime = mostRecentDate.getTime();
 
@@ -45,12 +46,12 @@ export const getSummary = async (userId: string) => {
 
       while (entryIndex < sortedEntries.length) {
         const entryDate = new Date(sortedEntries[entryIndex].completionDate);
-        entryDate.setHours(0, 0, 0, 0);
+        entryDate.setUTCHours(0, 0, 0, 0);
 
         if (entryDate.getTime() === currentDate.getTime()) {
           streak++;
           entryIndex++;
-          currentDate.setDate(currentDate.getDate() - 1);
+          currentDate.setUTCDate(currentDate.getUTCDate() - 1);
         } else if (entryDate.getTime() < currentDate.getTime()) {
           break;
         } else {
@@ -126,16 +127,17 @@ export const getPlatformUsage = async (userId: string) => {
 };
 
 export const getSkillsFrequency = async (userId: string) => {
-  const entries = await prisma.learningEntry.findMany({
-    where: { userId },
-    select: { skills: true }
-  });
+  const results = await prisma.$queryRaw<{skill: string, count: number}[]>`
+    SELECT skill, COUNT(*)::int AS count
+    FROM learning_entries, unnest(skills) AS skill
+    WHERE user_id = ${userId}
+    GROUP BY skill
+    ORDER BY count DESC
+  `;
 
   const frequency: Record<string, number> = {};
-  entries.forEach(entry => {
-    entry.skills.forEach(skill => {
-      frequency[skill] = (frequency[skill] || 0) + 1;
-    });
+  results.forEach(row => {
+    frequency[row.skill] = row.count;
   });
 
   return frequency;

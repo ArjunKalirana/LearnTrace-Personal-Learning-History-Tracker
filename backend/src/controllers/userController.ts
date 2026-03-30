@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthRequest } from '../types';
 import * as userService from '../services/userService';
 
@@ -14,5 +14,26 @@ export const exportData = async (req: AuthRequest, res: Response) => {
     res.send(content);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const getPortfolio = async (req: Request, res: Response) => {
+  try {
+    const { publicId } = req.params;
+    const portfolio = await userService.getPortfolio(publicId);
+    res.json(portfolio);
+  } catch (error: any) {
+    res.status(404).json({ error: error.message });
+  }
+};
+
+export const updatePublicProfileId = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { publicProfileId } = req.body;
+    const user = await userService.updatePublicProfileId(userId, publicProfileId);
+    res.json(user);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
   }
 };

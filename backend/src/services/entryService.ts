@@ -14,9 +14,33 @@ export interface CreateEntryData {
   description?: string;
   reflection?: string;
   certificatePath?: string;
+  status?: string;
+  difficulty?: string;
+  rating?: number;
+  resourceUrl?: string;
 }
 
 export interface UpdateEntryData extends Partial<CreateEntryData> {}
+
+export const getMetadata = async (userId: string) => {
+  const [platforms, domains] = await Promise.all([
+    prisma.learningEntry.findMany({
+      where: { userId },
+      select: { platform: true },
+      distinct: ['platform']
+    }),
+    prisma.learningEntry.findMany({
+      where: { userId },
+      select: { domain: true },
+      distinct: ['domain']
+    })
+  ]);
+
+  return {
+    platforms: platforms.map(p => p.platform).filter(Boolean),
+    domains: domains.map(d => d.domain).filter(Boolean)
+  };
+};
 
 export const createEntry = async (userId: string, data: CreateEntryData) => {
   return prisma.learningEntry.create({
@@ -35,7 +59,9 @@ export const getEntries = async (
     startDate?: Date;
     endDate?: Date;
     search?: string;
-  }
+  },
+  page?: number,
+  limit?: number
 ) => {
   const where: any = { userId };
 
@@ -61,8 +87,29 @@ export const getEntries = async (
     where.OR = [
       { title: { contains: filters.search, mode: 'insensitive' } },
       { description: { contains: filters.search, mode: 'insensitive' } },
-      { platform: { contains: filters.search, mode: 'insensitive' } }
+      { platform: { contains: filters.search, mode: 'insensitive' } },
+      { skills: { hasSome: [filters.search.toLowerCase()] } }
     ];
+  }
+
+  if (page && limit) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      prisma.learningEntry.findMany({
+        where,
+        orderBy: { completionDate: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.learningEntry.count({ where })
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   return prisma.learningEntry.findMany({
@@ -100,8 +147,18 @@ export const deleteEntry = async (userId: string, entryId: string) => {
 
   if (entry.certificatePath) {
     try {
-      const absolutePath = path.join(__dirname, '../../', entry.certificatePath);
-      await fs.unlink(absolutePath);
+      if (entry.certificatePath.startsWith('http')) {
+        const urlParts = entry.certificatePath.split('/');
+        const fileWithExt = urlParts[urlParts.length - 1];
+        const folder = urlParts[urlParts.length - 2];
+        const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+        
+        const { v2: cloudinary } = require('cloudinary');
+        await cloudinary.uploader.destroy(publicId);
+      } else {
+        const absolutePath = path.join(__dirname, '../../', entry.certificatePath.replace(/^\//, ''));
+        await fs.unlink(absolutePath);
+      }
     } catch (error) {
       console.error('Failed to delete certificate file:', error);
     }

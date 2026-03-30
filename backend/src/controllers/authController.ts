@@ -67,3 +67,51 @@ export const getMe = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    
+    const resetToken = await authService.forgotPassword(email);
+    // Returning the token here for MVP testing purposes since we don't have email sending
+    res.json({ 
+      message: 'If the email exists, a password reset link has been processed.', 
+      resetToken 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const resetPassword = [
+  body('token').notEmpty().withMessage('Token is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { token, newPassword } = req.body;
+      await authService.resetPassword(token, newPassword);
+      res.json({ message: 'Password reset successfully' });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+];
+
+export const refresh = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ error: 'Refresh token is required' });
+
+    const tokens = await authService.refresh(refreshToken);
+    res.json(tokens);
+  } catch (error: any) {
+    res.status(401).json({ error: error.message });
+  }
+};

@@ -37,10 +37,10 @@ export const createEntry = [
             : req.body.skills;
           skills = Array.isArray(parsed) ? parsed : [];
         } catch (e) {
-          // If parsing fails, treat as empty array
           skills = [];
         }
       }
+      skills = skills.map(s => s.trim().toLowerCase()).filter(Boolean);
 
       const hoursSpent = req.body.hoursSpent ? parseInt(req.body.hoursSpent, 10) : undefined;
       
@@ -55,7 +55,11 @@ export const createEntry = [
         skills,
         description: req.body.description || undefined,
         reflection: req.body.reflection || undefined,
-        certificatePath: req.file ? `/uploads/certificates/${req.file.filename}` : undefined
+        status: req.body.status || 'COMPLETED',
+        difficulty: req.body.difficulty || undefined,
+        rating: req.body.rating ? parseInt(req.body.rating, 10) : undefined,
+        resourceUrl: req.body.resourceUrl || undefined,
+        certificatePath: req.file ? req.file.path : undefined
       };
 
       const entry = await entryService.createEntry(userId, data);
@@ -72,6 +76,8 @@ export const getEntries = [
   query('startDate').optional().isISO8601(),
   query('endDate').optional().isISO8601(),
   query('search').optional().isString(),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
   
   async (req: AuthRequest, res: Response) => {
     try {
@@ -83,8 +89,11 @@ export const getEntries = [
       if (req.query.startDate) filters.startDate = new Date(req.query.startDate as string);
       if (req.query.endDate) filters.endDate = new Date(req.query.endDate as string);
       if (req.query.search) filters.search = req.query.search;
+      
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-      const entries = await entryService.getEntries(userId, filters);
+      const entries = await entryService.getEntries(userId, filters, page, limit);
       res.json(entries);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -103,6 +112,16 @@ export const getEntryById = async (req: AuthRequest, res: Response) => {
     }
 
     res.json(entry);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getMetadata = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const metadata = await entryService.getMetadata(userId);
+    res.json(metadata);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -146,18 +165,36 @@ export const updateEntry = [
         } catch (e) {
           data.skills = [];
         }
+        data.skills = data.skills.map((s: string) => s.trim().toLowerCase()).filter(Boolean);
       }
       if (req.body.description !== undefined) data.description = req.body.description || undefined;
       if (req.body.reflection !== undefined) data.reflection = req.body.reflection || undefined;
+      if (req.body.status !== undefined) data.status = req.body.status;
+      if (req.body.difficulty !== undefined) data.difficulty = req.body.difficulty || undefined;
+      if (req.body.rating !== undefined) data.rating = req.body.rating ? parseInt(req.body.rating, 10) : undefined;
+      if (req.body.resourceUrl !== undefined) data.resourceUrl = req.body.resourceUrl || undefined;
       
       if (req.file) {
-        data.certificatePath = `/uploads/certificates/${req.file.filename}`;
+        data.certificatePath = req.file.path;
         
         // If req.file exists AND existing entry has a certificatePath, delete the old file
         if (existingEntry?.certificatePath) {
           try {
-            const absolutePath = path.join(__dirname, '../../', existingEntry.certificatePath);
-            await fs.promises.unlink(absolutePath);
+            if (existingEntry.certificatePath.startsWith('http')) {
+              // Extract public_id from Cloudinary URL:
+              // e.g. https://res.cloudinary.com/.../upload/v1234/learntrace/certificates/abc.png
+              // public_id is 'learntrace/certificates/abc'
+              const urlParts = existingEntry.certificatePath.split('/');
+              const fileWithExt = urlParts[urlParts.length - 1];
+              const folder = urlParts[urlParts.length - 2];
+              const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+              
+              const { v2: cloudinary } = require('cloudinary');
+              await cloudinary.uploader.destroy(publicId);
+            } else {
+              const absolutePath = path.join(__dirname, '../../', existingEntry.certificatePath.replace(/^\//, ''));
+              await fs.promises.unlink(absolutePath);
+            }
           } catch (error) {
             console.error('Failed to delete old certificate file:', error);
           }

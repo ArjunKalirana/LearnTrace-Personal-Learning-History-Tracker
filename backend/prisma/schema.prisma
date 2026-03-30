@@ -13,11 +13,15 @@ datasource db {
 model User {
   id           String          @id @default(uuid())
   firstName    String          @map("first_name")
-  lastName     String          @map("last_name")
-  email        String          @unique
-  passwordHash String          @map("password_hash")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  entries      LearningEntry[]
+  lastName         String          @map("last_name")
+  email            String          @unique
+  passwordHash     String          @map("password_hash")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  resetToken       String?         @map("reset_token")
+  resetTokenExpiry DateTime?       @map("reset_token_expiry")
+  refreshToken     String?         @map("refresh_token")
+  publicProfileId  String?         @unique @map("public_profile_id")
+  entries          LearningEntry[]
 
   @@map("users")
 }
@@ -36,6 +40,10 @@ model LearningEntry {
   description     String?
   reflection      String?  @map("reflection")
   certificatePath String?  @map("certificate_path")
+  status          String   @default("COMPLETED")
+  difficulty      String?
+  rating          Int?
+  resourceUrl     String?  @map("resource_url")
   createdAt       DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

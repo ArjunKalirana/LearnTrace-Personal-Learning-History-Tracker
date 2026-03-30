@@ -39,3 +39,44 @@ export const exportUserData = async (userId: string, formatType: 'json' | 'csv')
     };
   }
 };
+
+export const getPortfolio = async (publicId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { publicProfileId: publicId },
+    include: {
+      entries: {
+        orderBy: { completionDate: 'desc' }
+      }
+    }
+  });
+
+  if (!user) throw new Error('Portfolio not found');
+
+  return {
+    user: {
+      firstName: user.firstName,
+      lastName: user.lastName,
+    },
+    entries: user.entries
+  };
+};
+
+export const updatePublicProfileId = async (userId: string, publicProfileId: string | null) => {
+  if (publicProfileId) {
+    const existing = await prisma.user.findUnique({
+      where: { publicProfileId }
+    });
+    if (existing && existing.id !== userId) {
+      throw new Error('This public profile ID is already taken');
+    }
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: { publicProfileId },
+    select: {
+      id: true,
+      publicProfileId: true
+    }
+  });
+};
