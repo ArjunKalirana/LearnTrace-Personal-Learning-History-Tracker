@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { User } from '../types';
 import { authAPI } from '../utils/api';
@@ -8,6 +8,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  setSession: (user: User, token: string) => void;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 }
 
@@ -41,29 +43,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
-  };
+  }, []);
 
-  const signup = async (firstName: string, lastName: string, email: string, password: string) => {
+  const signup = useCallback(async (firstName: string, lastName: string, email: string, password: string) => {
     const response = await authAPI.signup({ firstName, lastName, email, password });
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
-  };
+  }, []);
 
-  const logout = () => {
+  const setSession = useCallback((user: User, token: string) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await authAPI.getMe();
+      const freshUser = response.user;
+      localStorage.setItem('user', JSON.stringify(freshUser));
+      setUser(freshUser);
+    } catch (error) {
+      console.error('Failed to refresh user', error);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     queryClient.clear();
     setUser(null);
-  };
+  }, [queryClient]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, setSession, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

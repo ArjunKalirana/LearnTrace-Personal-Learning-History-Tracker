@@ -9,7 +9,7 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your email...');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { setSession } = useAuth();
 
   const token = searchParams.get('token');
 
@@ -22,22 +22,33 @@ export default function VerifyEmail() {
       }
 
       try {
-        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/verify-email`, { token });
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await axios.post(`${API_URL}/api/v1/auth/verify-email`, { token });
         
-        // Update local auth state with new token/user from response
         const { user, token: accessToken } = response.data;
-        // Check if we need to call login() or if the user is already updated via context
-        // For simplicity, we redirect with a success message
+        
+        if (setSession && user && accessToken) {
+          setSession(user, accessToken);
+        }
         
         setStatus('success');
         setMessage('Your email has been verified! Redirecting to dashboard...');
         
         setTimeout(() => {
           navigate('/dashboard');
-        }, 3000);
+        }, 2000);
       } catch (err: any) {
+        const errorMessage = err.response?.data?.error || err.message;
+        
+        if (errorMessage.includes('already verified')) {
+          setStatus('success');
+          setMessage('Email already verified! Redirecting...');
+          setTimeout(() => navigate('/dashboard'), 2000);
+          return;
+        }
+
         setStatus('error');
-        setMessage(err.response?.data?.error || 'Verification failed. The link may be expired.');
+        setMessage(errorMessage || 'Verification failed. The link may be expired.');
       }
     };
 

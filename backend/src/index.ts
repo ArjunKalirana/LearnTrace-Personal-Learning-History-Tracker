@@ -36,19 +36,19 @@ const PORT = process.env.PORT || 3001;
 
 const isProd = process.env.NODE_ENV === 'production';
 
-// General API limiter: 100 requests per 15 minutes (higher in dev)
+// General API limiter: 100 requests per 15 minutes (much higher in dev)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProd ? 100 : 1000,
+  max: isProd ? 100 : 5000,
   message: { error: 'Too many requests, please slow down' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Login limiter: 5 requests per 15 minutes per IP+email combo (higher in dev)
+// Login limiter: 5 requests per 15 minutes per IP+email combo (much higher in dev)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProd ? 5 : 100,
+  max: isProd ? 5 : 500,
   message: { error: 'Too many login attempts, please try again in 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -56,10 +56,10 @@ const loginLimiter = rateLimit({
   validate: false,
 });
 
-// Signup limiter: 3 requests per hour per IP (higher in dev)
+// Signup limiter: 3 requests per hour per IP (much higher in dev)
 const signupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: isProd ? 3 : 100,
+  max: isProd ? 3 : 500,
   message: { error: 'Too many signup attempts, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -97,6 +97,7 @@ app.use(helmet({
       connectSrc: ["'self'", process.env.FRONTEND_URL || 'http://localhost:5173'],
     },
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   hsts: {
     maxAge: 31536000,
   },

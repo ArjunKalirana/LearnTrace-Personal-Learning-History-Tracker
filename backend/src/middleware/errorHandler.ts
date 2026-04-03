@@ -17,21 +17,19 @@ export const errorHandler = (err: any, req: Request, res: Response, _next: NextF
       message: err.message,
       stack: isProduction ? undefined : err.stack,
       name: err.name,
+      statusCode: statusCode,
       ...err
     },
     req: {
       method: req.method,
       url: req.url,
-      params: req.params,
-      query: req.query,
-      ip: req.ip,
-      headers: isProduction ? undefined : req.headers
+      ip: req.ip
     }
-  }, 'Unhandled Exception');
+  }, 'Error handled');
 
   // API Response
   res.status(statusCode).json({
-    error: isProduction ? 'Internal server error' : err.message,
+    error: isProduction && statusCode === 500 ? 'Internal server error' : err.message,
     ...( !isProduction && { stack: err.stack })
   });
 };
