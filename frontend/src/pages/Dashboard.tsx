@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Clock, Flame, Plus, ArrowUpRight, Calendar, Layers, AlertCircle, RefreshCcw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SkeletonCard, SkeletonStat } from '../components/Skeleton';
@@ -11,10 +11,20 @@ import { authAPI } from '../utils/api';
 import { useToast } from '../components/Toast';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { data: summary, isLoading, isError, refetch } = useSummary();
   const { show: toast } = useToast();
   const [isResending, setIsResending] = useState(false);
+
+  // When dashboard mounts, if user is not verified, 
+  // try to refresh their status just in case they just came back 
+  // from a successful verification flow in another tab.
+  useEffect(() => {
+    if (user && !user.emailVerified) {
+      refreshUser();
+    }
+    // We only want to run this once on mount or if refreshUser itself (stable) changes
+  }, [refreshUser]); // user check is internal to avoids re-triggering when user state updates 19:  const { user, refreshUser } = useAuth();
 
   const loadSummary = () => refetch();
 
@@ -94,7 +104,7 @@ export default function Dashboard() {
         <div className="space-y-10">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <SkeletonStat key={i} />
+              <SkeletonStat key={`skeleton-stat-${i}`} />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -104,7 +114,7 @@ export default function Dashboard() {
                 <div className="h-4 w-20 bg-gray-100 rounded animate-pulse" />
               </div>
               {[1, 2, 3].map((i) => (
-                <SkeletonCard key={i} />
+                <SkeletonCard key={`skeleton-card-${i}`} />
               ))}
             </div>
             <div className="h-[400px] bg-gray-50 rounded-[32px] animate-pulse" />
@@ -190,8 +200,8 @@ export default function Dashboard() {
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-black transition-colors">{entry.title}</h3>
                                 <div className="flex flex-wrap gap-2">
-                                {entry.skills.slice(0, 3).map((skill: string) => (
-                                    <span key={skill} className="text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+                                {entry.skills.slice(0, 3).map((skill: string, sIdx: number) => (
+                                    <span key={`${entry.id}-${skill}-${sIdx}`} className="text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
                                     #{skill}
                                     </span>
                                 ))}
@@ -280,7 +290,7 @@ function FocusDomainWidget() {
     return (
       <div className="space-y-4">
         {[1, 2].map(i => (
-          <div key={i} className="animate-pulse space-y-2">
+          <div key={`domain-skeleton-${i}`} className="animate-pulse space-y-2">
             <div className="flex justify-between">
               <div className="h-4 w-24 bg-gray-100 rounded" />
               <div className="h-4 w-12 bg-gray-100 rounded" />
@@ -308,7 +318,7 @@ function FocusDomainWidget() {
   return (
     <div className="space-y-4">
       {sorted.map(([domain, count], idx) => (
-        <div key={domain} className="space-y-2">
+        <div key={`domain-${domain}-${idx}`} className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500">{domain}</span>
             <span className="text-sm font-bold text-gray-900">{count} {count === 1 ? 'entry' : 'entries'}</span>

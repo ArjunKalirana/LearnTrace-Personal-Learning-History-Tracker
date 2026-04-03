@@ -20,8 +20,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'LEARNING_DETECTED') {
     handleLearningDetected(message.payload);
+    // Send a quick response to satisfy the listener's expectation of a response
+    sendResponse({ status: 'received' });
   }
-  return true;
+  // Return false because we've already responded or don't need to keep the channel open
+  return false;
 });
 
 async function generateIdempotencyKey(userId, title, completionDate) {

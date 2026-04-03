@@ -33,11 +33,18 @@ export default function BadgeVault() {
     setLoading(true);
     setError(null);
     try {
-      const data = await entriesAPI.getAll({
+      const response = await entriesAPI.getAll({
         domain: filterDomain || undefined,
         platform: filterPlatform || undefined,
       });
-      const entriesWithCertificates = data.filter((entry) => entry.certificatePath);
+      
+      // Ensure we have an array even if the API structure changes slightly
+      const data = Array.isArray(response) ? response : (response as any).data || [];
+      console.log(`[BadgeVault] Fetched ${data.length} entries. Filters: Domain=${filterDomain}, Platform=${filterPlatform}`);
+      
+      const entriesWithCertificates = data.filter((entry: LearningEntry) => entry.certificatePath);
+      console.log(`[BadgeVault] Found ${entriesWithCertificates.length} certificates.`);
+      
       setEntries(entriesWithCertificates);
     } catch (error) {
       console.error('Failed to load entries', error);

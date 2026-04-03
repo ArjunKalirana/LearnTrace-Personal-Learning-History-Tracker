@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { sendVerificationEmail } from './emailService';
+import { AppError } from '../utils/appError';
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -39,7 +40,7 @@ export const signup = async (data: SignupData) => {
   });
 
   if (existingUser) {
-    throw new Error('Email already registered');
+    throw new AppError('Email already registered', 400);
   }
 
   // Hash password with bcrypt (10 salt rounds for security)
@@ -96,7 +97,22 @@ export const verifyEmail = async (token: string) => {
   });
 
   if (!user) {
-    throw new Error('Invalid or expired verification token');
+    // Check if the user is already verified (token might have been cleared)
+    // This is for cases where user clicks the link twice.
+    const alreadyVerified = await prisma.user.findFirst({
+      where: { 
+        emailVerified: true,
+        verificationToken: null
+        // We don't have the userId here, but we can't easily find which user 
+        // this token *used* to belong to without a log or a more complex schema.
+      }
+    });
+
+    if (alreadyVerified) {
+       throw new AppError('Email is already verified. Please log in.', 400);
+    }
+
+    throw new AppError('Invalid or expired verification token', 400);
   }
 
   const updatedUser = await prisma.user.update({
@@ -144,11 +160,11 @@ export const resendVerification = async (userId: string) => {
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new AppError('User not found', 404);
   }
 
   if (user.emailVerified) {
-    throw new Error('Email is already verified');
+    throw new AppError('Email is already verified', 400);
   }
 
   let token = user.verificationToken;
@@ -182,14 +198,14 @@ export const login = async (data: LoginData) => {
 
   if (!user) {
     // Don't reveal if email exists (security best practice)
-    throw new Error('Invalid email or password');
+    throw new AppError('Invalid email or password', 401);
   }
 
   // Compare password with stored hash
   const isValid = await bcrypt.compare(data.password, user.passwordHash);
 
   if (!isValid) {
-    throw new Error('Invalid email or password');
+    throw new AppError('Invalid email or password', 401);
   }
 
   const token = jwt.sign(

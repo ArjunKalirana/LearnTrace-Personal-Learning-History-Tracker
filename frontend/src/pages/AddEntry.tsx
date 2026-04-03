@@ -189,10 +189,11 @@ export default function AddEntry() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
                         Milestone Title <span className="text-red-500">*</span>
                     </label>
                     <input
+                        id="title"
                         {...register('title', { required: 'Title is required' })}
                         autoFocus
                         className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-[#1C1917] placeholder:text-gray-400 focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-medium"
@@ -203,28 +204,31 @@ export default function AddEntry() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Platform</label>
+                        <label htmlFor="platform" className="block text-sm font-semibold text-gray-700 mb-2">Platform</label>
                         <input
+                            id="platform"
                             {...register('platform', { required: 'Platform is required' })}
                             className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500"
                             placeholder="e.g., Udemy, YouTube"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Domain</label>
+                        <label htmlFor="domain" className="block text-sm font-semibold text-gray-700 mb-2">Domain</label>
                         <select
+                            id="domain"
                             {...register('domain', { required: 'Domain is required' })}
                             className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500 cursor-pointer"
                         >
                             <option value="">Select Domain</option>
-                            {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+                            {DOMAINS.map(d => <option key={`domain-option-${d}`} value={d}>{d}</option>)}
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                    <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                     <textarea
+                        id="description"
                         {...register('description')}
                         rows={3}
                         className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500"
@@ -241,16 +245,18 @@ export default function AddEntry() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
+                        <label htmlFor="startDate" className="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
                         <input
+                            id="startDate"
                             type="date"
                             {...register('startDate', { required: true })}
                             className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Completion Date</label>
+                        <label htmlFor="completionDate" className="block text-sm font-semibold text-gray-700 mb-2">Completion Date</label>
                         <input
+                            id="completionDate"
                             type="date"
                             {...register('completionDate', { required: true })}
                             className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500"
@@ -259,8 +265,9 @@ export default function AddEntry() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Hours Spent</label>
+                    <label htmlFor="hoursSpent" className="block text-sm font-semibold text-gray-700 mb-2">Hours Spent</label>
                     <input
+                        id="hoursSpent"
                         type="number"
                         min="0"
                         {...register('hoursSpent')}
@@ -278,9 +285,10 @@ export default function AddEntry() {
             <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
                 <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="h-4 w-4 text-amber-600" />
-                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Deep Reflection</h2>
+                    <label htmlFor="reflection" className="text-xs font-bold text-gray-400 uppercase tracking-widest">Deep Reflection</label>
                 </div>
                 <textarea
+                    id="reflection"
                     {...register('reflection')}
                     rows={4}
                     className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500"
@@ -334,9 +342,9 @@ export default function AddEntry() {
                             </div>
                             <p className="text-sm font-bold text-gray-900">Drag certificate here</p>
                             <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
-                            <label className="mt-4 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
+                            <label htmlFor="certificate-upload" className="mt-4 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
                                 Choose File
-                                <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange} />
+                                <input id="certificate-upload" type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange} />
                             </label>
                         </>
                     )}
