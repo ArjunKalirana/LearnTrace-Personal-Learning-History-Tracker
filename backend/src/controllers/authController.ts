@@ -75,11 +75,9 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
   
-  const resetToken = await authService.forgotPassword(email);
-  // Returning the token here for MVP testing purposes since we don't have email sending
+  await authService.forgotPassword(email);
   res.json({ 
-    message: 'If the email exists, a password reset link has been processed.', 
-    resetToken 
+    message: 'If the email exists, a password reset link has been sent.' 
   });
 });
 

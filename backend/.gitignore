@@ -3,3 +3,5 @@ dist
 .env
 uploads/certificates/*
 !uploads/certificates/.gitkeep
+tmp_*.json
+test-*.js

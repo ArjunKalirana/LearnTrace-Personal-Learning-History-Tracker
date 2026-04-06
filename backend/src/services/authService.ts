@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
-import { sendVerificationEmail } from './emailService';
+import { sendVerificationEmail, sendPasswordResetEmail } from './emailService';
 import { AppError } from '../utils/appError';
 
 function getJwtSecret() {
@@ -97,21 +97,6 @@ export const verifyEmail = async (token: string) => {
   });
 
   if (!user) {
-    // Check if the user is already verified (token might have been cleared)
-    // This is for cases where user clicks the link twice.
-    const alreadyVerified = await prisma.user.findFirst({
-      where: { 
-        emailVerified: true,
-        verificationToken: null
-        // We don't have the userId here, but we can't easily find which user 
-        // this token *used* to belong to without a log or a more complex schema.
-      }
-    });
-
-    if (alreadyVerified) {
-       throw new AppError('Email is already verified. Please log in.', 400);
-    }
-
     throw new AppError('Invalid or expired verification token', 400);
   }
 
@@ -265,8 +250,10 @@ export const forgotPassword = async (email: string) => {
     where: { id: user.id },
     data: { resetToken: hashedToken, resetTokenExpiry }
   });
+  
+  // Send reset email (async, non-blocking)
+  sendPasswordResetEmail(user.email, resetToken, user.firstName).catch(() => {});
 
-  // Since we don't have email setup yet in MVP, return the raw token.
   return resetToken;
 };
 

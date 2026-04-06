@@ -100,3 +100,60 @@ export const sendVerificationEmail = async (
 
   return verificationUrl;
 };
+
+/**
+ * Send a password reset email to the user.
+ */
+export const sendPasswordResetEmail = async (
+  to: string,
+  token: string,
+  firstName: string
+): Promise<string> => {
+  const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
+
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: `"LearnTrace" <${FROM_EMAIL}>`,
+        to,
+        subject: '🔐 Reset your LearnTrace password',
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h1 style="font-size: 28px; font-weight: 800; color: #1C1917; margin: 0;">LearnTrace</h1>
+              <p style="color: #78716c; font-size: 14px; margin-top: 4px;">Your Personal Learning History</p>
+            </div>
+            
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px;">
+              <h2 style="font-size: 20px; color: #1C1917; margin: 0 0 12px 0;">Hey ${firstName}</h2>
+              <p style="color: #57534e; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
+                We received a request to reset your password. If you didn't make this request, you can safely ignore this email.
+              </p>
+              
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${resetUrl}" 
+                   style="display: inline-block; background: #1C1917; color: #ffffff; padding: 14px 32px; border-radius: 12px; font-size: 14px; font-weight: 700; text-decoration: none;">
+                  Reset Password
+                </a>
+              </div>
+              
+              <p style="color: #a8a29e; font-size: 12px; line-height: 1.6; margin: 24px 0 0 0;">
+                If the button doesn't work, copy and paste this link:<br/>
+                <a href="${resetUrl}" style="color: #f59e0b; word-break: break-all;">${resetUrl}</a>
+              </p>
+            </div>
+          </div>
+        `,
+      });
+      logger.info({ to }, '📧 Password reset email sent successfully');
+    } catch (error) {
+      logger.error({ to, error }, '❌ Failed to send password reset email');
+    }
+  } else {
+    logger.info('─'.repeat(60));
+    logger.info({ to, resetUrl }, '📧 [DEV MODE] Password reset link generated');
+    logger.info('─'.repeat(60));
+  }
+
+  return resetUrl;
+};
