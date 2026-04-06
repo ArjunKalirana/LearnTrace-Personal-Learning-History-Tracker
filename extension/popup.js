@@ -1,4 +1,7 @@
-const API_URL = 'http://localhost:3001';
+async function getApiUrl() {
+    const { apiUrl } = await chrome.storage.local.get(['apiUrl']);
+    return apiUrl || 'http://localhost:3001';
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     const loginView = document.getElementById('loginView');
@@ -24,10 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Check login state
-    const { token, user, trackingPaused, sync_queue = [] } = await chrome.storage.local.get(['token', 'user', 'trackingPaused', 'sync_queue']);
+    const { token, user, trackingPaused, activity_log = [] } = await chrome.storage.local.get(['token', 'user', 'trackingPaused', 'activity_log']);
 
     if (token && user) {
-        showUserView(user, trackingPaused, sync_queue);
+        showUserView(user, trackingPaused, activity_log);
     } else {
         showLoginView();
     }
@@ -39,7 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorMsg.style.display = 'none';
 
         try {
-            const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+            const apiUrl = await getApiUrl();
+            const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -48,7 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
             if (response.ok) {
                 await chrome.storage.local.set({ token: data.token, user: data.user });
-                showUserView(data.user, false, []);
+                const { activity_log = [] } = await chrome.storage.local.get(['activity_log']);
+                showUserView(data.user, false, activity_log);
             } else {
                 errorMsg.textContent = data.error || 'Login failed';
                 errorMsg.style.display = 'block';

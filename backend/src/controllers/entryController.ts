@@ -4,6 +4,7 @@ import { AuthRequest } from '../types';
 import * as entryService from '../services/entryService';
 import { asyncHandler } from '../middleware/asyncHandler';
 import logger from '../lib/logger';
+import { v2 as cloudinary } from 'cloudinary';
 import prisma from '../lib/prisma';
 import fs from 'fs';
 import path from 'path';
@@ -20,6 +21,7 @@ export const createEntry = [
   body('domain').trim().notEmpty().withMessage('Domain is required'),
   body('startDate').isISO8601().withMessage('Valid start date is required'),
   body('completionDate').isISO8601().withMessage('Valid completion date is required'),
+  body('hoursSpent').optional().isInt({ min: 0, max: 10000 }).withMessage('Hours spent must be a positive number'),
   // Skills validation handled in controller (comes as JSON string from FormData)
   
   async (req: AuthRequest, res: Response) => {
@@ -149,6 +151,7 @@ export const updateEntry = [
   body('domain').optional().trim().notEmpty(),
   body('startDate').optional().isISO8601(),
   body('completionDate').optional().isISO8601(),
+  body('hoursSpent').optional().isInt({ min: 0, max: 10000 }).withMessage('Hours spent must be a positive number'),
   body('skills').optional().isArray(),
   
   async (req: AuthRequest, res: Response) => {
@@ -205,7 +208,6 @@ export const updateEntry = [
               const folder = urlParts[urlParts.length - 2];
               const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
               
-              const { v2: cloudinary } = require('cloudinary');
               await cloudinary.uploader.destroy(publicId);
             } else {
               const absolutePath = path.join(__dirname, '../../', existingEntry.certificatePath.replace(/^\//, ''));

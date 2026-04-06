@@ -28,19 +28,72 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors
+// Handle 401 errors with automatic token refresh
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Avoid wiping auth on auth endpoints themselves (prevents confusing loops)
-      const url: string = error.config?.url || '';
-      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/signup');
+  async (error) => {
+    const originalRequest = error.config;
 
-      if (!isAuthEndpoint) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const url: string = originalRequest.url || '';
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/signup') || url.includes('/auth/refresh');
+
+      if (isAuthEndpoint) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        localStorage.clear();
         window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      try {
+        const { token, refreshToken: newRefreshToken } = await authAPI.refresh(refreshToken);
+        localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        
+        processQueue(null, token);
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        localStorage.clear();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
     return Promise.reject(error);
@@ -62,6 +115,11 @@ export const authAPI = {
   },
   resendVerification: async (): Promise<{ message: string; token: string }> => {
     const response = await api.post('/auth/resend-verification');
+    return response.data;
+  },
+  refresh: async (refreshToken: string): Promise<{ token: string; refreshToken: string }> => {
+    // Use raw axios or a separate instance to avoid interceptor loops if refresh itself fails
+    const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
     return response.data;
   },
 };

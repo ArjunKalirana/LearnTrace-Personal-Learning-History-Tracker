@@ -1,4 +1,7 @@
-const API_URL = 'http://localhost:3001';
+async function getApiUrl() {
+  const { apiUrl } = await chrome.storage.local.get(['apiUrl']);
+  return apiUrl || 'http://localhost:3001';
+}
 
 // On installation, open onboarding page
 chrome.runtime.onInstalled.addListener((details) => {
@@ -107,7 +110,8 @@ async function processQueue() {
 
 async function sendEntry(item, token) {
   try {
-    const res = await fetch(`${API_URL}/api/v1/entries`, {
+    const apiUrl = await getApiUrl();
+    const res = await fetch(`${apiUrl}/api/v1/entries`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

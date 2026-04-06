@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
     localStorage.setItem('token', response.token);
+    localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
   }, []);
@@ -53,12 +54,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = useCallback(async (firstName: string, lastName: string, email: string, password: string) => {
     const response = await authAPI.signup({ firstName, lastName, email, password });
     localStorage.setItem('token', response.token);
+    localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
   }, []);
 
-  const setSession = useCallback((user: User, token: string) => {
+  const setSession = useCallback((user: User, token: string, refreshToken?: string) => {
     localStorage.setItem('token', token);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
   }, []);
@@ -76,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     queryClient.clear();
     setUser(null);

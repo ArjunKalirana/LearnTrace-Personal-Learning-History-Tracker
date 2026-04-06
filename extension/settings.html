@@ -38,6 +38,15 @@
 <body>
     <div class="container">
         <h1>Privacy Settings</h1>
+        
+        <div class="section">
+            <h3 style="margin:0 0 12px 0;">Backend API Connection</h3>
+            <p style="margin:0 0 16px 0; color: #6b7280; font-size: 0.85rem;">Set your deployed backend URL (e.g., https://api.learntrace.app). Keep at http://localhost:3001 for local development.</p>
+            <div style="display: flex; gap: 12px;">
+                <input type="text" id="apiUrlInput" placeholder="http://localhost:3001" style="flex: 1; padding: 10px 16px; border-radius: 12px; border: 1px solid #e5e7eb; font-family: inherit;">
+                <button id="saveApiBtn" style="background: #111827; color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; cursor: pointer;">Save Connection</button>
+            </div>
+        </div>
 
         <div class="section">
             <div class="flex-between">

@@ -6,9 +6,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logList = document.getElementById('logList');
     const clearBtn = document.getElementById('clearBtn');
 
-    const state = await chrome.storage.local.get(['trackingPaused', 'enabledPlatforms', 'activity_log']);
+    const state = await chrome.storage.local.get(['trackingPaused', 'enabledPlatforms', 'activity_log', 'apiUrl']);
     const enabledPlatforms = state.enabledPlatforms || [];
     const activityLog = state.activity_log || [];
+    const apiUrl = state.apiUrl || 'http://localhost:3001';
+
+    // API URL Setting
+    const apiUrlInput = document.getElementById('apiUrlInput');
+    const saveApiBtn = document.getElementById('saveApiBtn');
+    
+    apiUrlInput.value = apiUrl;
+    
+    saveApiBtn.addEventListener('click', async () => {
+        const newUrl = apiUrlInput.value.trim().replace(/\/$/, ""); // Remove trailing slash
+        if (!newUrl) return alert('Please enter a valid API URL');
+        
+        await chrome.storage.local.set({ apiUrl: newUrl });
+        saveApiBtn.textContent = 'Saved! ✓';
+        saveApiBtn.style.background = '#10b981';
+        
+        setTimeout(() => {
+            saveApiBtn.textContent = 'Save Connection';
+            saveApiBtn.style.background = '#111827';
+        }, 2000);
+    });
 
     // Master Toggle
     masterPause.checked = !state.trackingPaused; // Pause is true, checked is active (false)

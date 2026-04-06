@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 import prisma from '../lib/prisma';
 import logger from '../lib/logger';
 
@@ -178,7 +179,6 @@ export const deleteEntry = async (userId: string, entryId: string) => {
         const folder = urlParts[urlParts.length - 2];
         const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
         
-        const { v2: cloudinary } = require('cloudinary');
         await cloudinary.uploader.destroy(publicId);
       } else {
         const absolutePath = path.join(__dirname, '../../', entry.certificatePath.replace(/^\//, ''));
