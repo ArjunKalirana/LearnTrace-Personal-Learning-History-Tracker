@@ -27,5 +27,6 @@ Thumbs.db
 backend/uploads/certificates/*
 !backend/uploads/certificates/.gitkeep
 
-# Prisma
-backend/prisma/migrations/
+# Prisma — generated client is ignored, but migrations MUST be committed
+backend/prisma/migrations/**/migration_lock.toml
+!backend/prisma/migrations/

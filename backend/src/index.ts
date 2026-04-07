@@ -36,6 +36,10 @@ const PORT = process.env.PORT || 3001;
 
 const isProd = process.env.NODE_ENV === 'production';
 
+// Railway / Vercel / Render all sit behind a reverse proxy
+// This is required for express-rate-limit to read the real client IP
+app.set('trust proxy', 1);
+
 // General API limiter: 100 requests per 15 minutes (much higher in dev)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
