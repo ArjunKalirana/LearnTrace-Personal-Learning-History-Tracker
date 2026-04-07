@@ -93,13 +93,18 @@ app.get('/health', async (req, res) => {
 const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 logger.info({ FRONTEND_ORIGIN, raw: process.env.FRONTEND_URL }, '🌐 CORS origin configured');
 
-// CORS must be applied BEFORE helmet so OPTIONS preflight is handled first
-app.use(cors({
+const corsOptions = {
   origin: FRONTEND_ORIGIN,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
-  credentials: true
-}));
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+// Explicit preflight handler — guarantees OPTIONS always gets CORS headers
+app.options('*', cors(corsOptions));
+// CORS for all other requests
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(helmet({
