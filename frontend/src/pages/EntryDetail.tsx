@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, ArrowLeft, Calendar, Layout, Hash, MessageCircle, ExternalLink, Award } from 'lucide-react';
-import { entriesAPI, BACKEND_URL } from '../utils/api';
+import { entriesAPI, getCertificateUrl } from '../utils/api';
 import { LearningEntry } from '../types';
 import { format } from 'date-fns';
 
@@ -74,9 +74,7 @@ export default function EntryDetail() {
     );
   }
 
-  const certificateUrl = entry.certificatePath
-    ? `${BACKEND_URL}${entry.certificatePath}`
-    : null;
+  const certificateUrl = getCertificateUrl(entry.certificatePath);
 
   return (
     <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-700 pt-6">

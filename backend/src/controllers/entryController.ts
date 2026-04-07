@@ -64,7 +64,9 @@ export const createEntry = [
         difficulty: req.body.difficulty || undefined,
         rating: req.body.rating ? parseInt(req.body.rating, 10) : undefined,
         resourceUrl: req.body.resourceUrl || undefined,
-        certificatePath: req.file ? `/uploads/certificates/${path.basename(req.file.path)}` : undefined
+        certificatePath: req.file
+          ? (req.file.path.startsWith('http') ? req.file.path : `/uploads/certificates/${path.basename(req.file.path)}`)
+          : undefined
       };
 
       const idempotencyKey = req.headers['idempotency-key'] as string;
@@ -194,7 +196,9 @@ export const updateEntry = [
       if (req.body.resourceUrl !== undefined) data.resourceUrl = req.body.resourceUrl || undefined;
       
       if (req.file) {
-        data.certificatePath = `/uploads/certificates/${path.basename(req.file.path)}`;
+        data.certificatePath = req.file.path.startsWith('http')
+          ? req.file.path
+          : `/uploads/certificates/${path.basename(req.file.path)}`;
         
         // If req.file exists AND existing entry has a certificatePath, delete the old file
         if (existingEntry?.certificatePath) {

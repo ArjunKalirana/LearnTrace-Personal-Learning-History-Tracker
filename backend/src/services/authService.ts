@@ -83,9 +83,17 @@ export const signup = async (data: SignupData) => {
   });
 
   // Send verification email (async, non-blocking)
-  sendVerificationEmail(user.email, verificationToken, user.firstName).catch(() => {});
+  const verificationUrl = await sendVerificationEmail(user.email, verificationToken, user.firstName);
 
-  return { user, token, refreshToken, verificationToken };
+  // In development, return the verification URL so the frontend can display it
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  return {
+    user,
+    token,
+    refreshToken,
+    ...(isDev && { verificationUrl }),
+  };
 };
 
 /**

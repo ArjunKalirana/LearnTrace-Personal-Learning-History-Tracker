@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { entriesAPI, BACKEND_URL } from '../utils/api';
+import { entriesAPI, getCertificateUrl } from '../utils/api';
 import { TagInput } from '../components/TagInput';
 import { X, UploadCloud, FileText, Calendar, Globe, Sparkles } from 'lucide-react';
 
@@ -68,7 +68,7 @@ export default function AddEntry() {
       setValue('reflection', entry.reflection || '');
       setSkills(entry.skills || []);
       if (entry.certificatePath) {
-        setCertificatePreview(`${BACKEND_URL}${entry.certificatePath}`);
+        setCertificatePreview(getCertificateUrl(entry.certificatePath));
       }
     } catch (err) {
       console.error('Failed to load entry', err);

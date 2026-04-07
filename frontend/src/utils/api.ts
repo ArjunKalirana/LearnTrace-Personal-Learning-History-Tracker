@@ -5,6 +5,15 @@ import type { AuthResponse, User, LearningEntry, DashboardSummary } from '../typ
 export const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
 const API_URL = BACKEND_URL + '/api/v1';
 
+/** Build full certificate URL — handles both Cloudinary (absolute) and local (relative) paths */
+export const getCertificateUrl = (certPath: string | null | undefined): string | null => {
+  if (!certPath) return null;
+  // Cloudinary URLs are already absolute
+  if (certPath.startsWith('http')) return certPath;
+  // Local paths need the backend origin prepended
+  return `${BACKEND_URL}${certPath}`;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
