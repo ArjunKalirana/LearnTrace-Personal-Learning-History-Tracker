@@ -6,6 +6,7 @@ import { SkeletonCard } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
 import { useInfiniteEntries, useDeleteEntry } from '../hooks/useEntries';
 import { useToast } from '../components/Toast';
+import { BACKEND_URL } from '../utils/api';
 
 const DOMAINS = [
   'Programming',
@@ -225,7 +226,7 @@ export default function Timeline() {
                 <div className="flex items-start gap-6">
                   {entry.certificatePath && (
                     <img
-                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${entry.certificatePath}`}
+                      src={`${BACKEND_URL}${entry.certificatePath}`}
                       alt={entry.title}
                       className="w-24 h-24 object-cover rounded-button"
                     />

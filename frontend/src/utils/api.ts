@@ -1,7 +1,9 @@
 import axios from 'axios';
 import type { AuthResponse, User, LearningEntry, DashboardSummary } from '../types';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, '') + '/api/v1';
+/** Base backend origin without trailing slash — use for static file URLs (certificates, etc.) */
+export const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+const API_URL = BACKEND_URL + '/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,

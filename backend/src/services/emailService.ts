@@ -10,7 +10,7 @@ const SMTP_CONFIGURED = !!(
 let transporter: nodemailer.Transporter | null = null;
 
 if (SMTP_CONFIGURED) {
-  transporter = nodemailer.createTransport({
+  const t = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587', 10),
     secure: process.env.SMTP_PORT === '465',
@@ -18,17 +18,19 @@ if (SMTP_CONFIGURED) {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    connectionTimeout: 5000,
   });
 
-  // Verify SMTP connection on startup
-  transporter.verify((error) => {
-    if (error) {
-      logger.error({ error }, '❌ SMTP connection failed. Emails will not be sent.');
-      transporter = null;
-    } else {
+  // Verify SMTP connection eagerly — if it fails, fall back to console logging
+  t.verify()
+    .then(() => {
+      transporter = t;
       logger.info('✅ SMTP connected — email sending is active.');
-    }
-  });
+    })
+    .catch((error) => {
+      logger.info({ error }, '❌ SMTP connection failed. Emails will not be sent.');
+      // transporter stays null → all emails fall back to console
+    });
 } else {
   logger.warn('⚠️ SMTP not configured. Verification emails will be logged to console instead.');
 }

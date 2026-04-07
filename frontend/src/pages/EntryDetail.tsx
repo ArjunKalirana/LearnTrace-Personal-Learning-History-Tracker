@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, ArrowLeft, Calendar, Layout, Hash, MessageCircle, ExternalLink, Award } from 'lucide-react';
-import { entriesAPI } from '../utils/api';
+import { entriesAPI, BACKEND_URL } from '../utils/api';
 import { LearningEntry } from '../types';
 import { format } from 'date-fns';
 
@@ -75,7 +75,7 @@ export default function EntryDetail() {
   }
 
   const certificateUrl = entry.certificatePath
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${entry.certificatePath}`
+    ? `${BACKEND_URL}${entry.certificatePath}`
     : null;
 
   return (
