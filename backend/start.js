@@ -4,29 +4,43 @@ console.log("==========================================");
 console.log("    RAILWAY STARTUP DIAGNOSTIC SCRIPT     ");
 console.log("==========================================");
 
-const dbUrl = process.env.DATABASE_URL;
+// Create a heavily sanitized copy of process.env to eliminate hidden Carriage Returns (\r)
+// or accidental spaces that users often paste into the Railway Dashboard GUI.
+const sanitizedEnv = {};
+for (const [key, value] of Object.entries(process.env)) {
+  const cleanKey = key.trim();
+  const cleanValue = typeof value === 'string' ? value.trim() : value;
+  sanitizedEnv[cleanKey] = cleanValue;
+}
 
-if (!dbUrl || dbUrl.trim() === '') {
-  console.error("❌ CRITICAL ERROR: DATABASE_URL is missing in process.env!");
-  console.error("👉 Please ensure you added DATABASE_URL to the 'Variables' tab of your Backend service exactly as named.");
-  console.log("Current keys in process.env:");
-  console.log(Object.keys(process.env).join(", "));
+const dbUrl = sanitizedEnv.DATABASE_URL;
+
+if (!dbUrl) {
+  console.error("❌ CRITICAL ERROR: DATABASE_URL is missing even after checking heavily sanitized keys!");
+  console.log("Current RAW keys in process.env (hex encoded to show hidden characters):");
+  Object.keys(process.env).forEach(k => {
+    let hex = "";
+    for(let i=0; i<k.length; i++) hex += k.charCodeAt(i).toString(16) + " ";
+    console.log(`"${k}" -> [${hex}]`);
+  });
   process.exit(1);
 }
 
-console.log("✅ DATABASE_URL is present. (Length: " + dbUrl.length + ", Type: " + typeof dbUrl + ")");
+console.log("✅ DATABASE_URL is present and sanitized! (Length: " + dbUrl.length + ")");
 
 try {
   console.log("🚀 Running database push (npx prisma db push)...");
   
-  // Explicitly inject the environment variables into the child process.
-  // This bypasses any Prisma bugs with Alpine Linux and missing .env files.
+  // Explicitly inject the completely sanitized environment.
   execSync('npx prisma db push --accept-data-loss', { 
     stdio: 'inherit',
-    env: Object.assign({}, process.env)
+    env: sanitizedEnv
   });
   
   console.log("✅ Database synced successfully. Starting app...");
+  
+  // Overwrite the global process.env so the Express app uses the sanitized vars too!
+  process.env = sanitizedEnv;
   
   // Start the main application
   require('./dist/index.js');
