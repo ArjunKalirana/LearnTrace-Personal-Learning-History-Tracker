@@ -1,0 +1,196 @@
+import { Request, Response } from 'express';
+import prisma from '../lib/prisma';
+import { asyncHandler } from '../middleware/asyncHandler';
+
+/**
+ * Get distinct classes for the admin's college
+ */
+export const getClasses = asyncHandler(async (req: Request, res: Response) => {
+  const collegeName = (req as any).adminCollegeName;
+  if (!collegeName) {
+    return res.status(400).json({ error: 'Admin college not configured' });
+  }
+
+  const classes = await prisma.user.groupBy({
+    by: ['className'],
+    where: {
+      collegeName,
+      role: 'STUDENT',
+      className: { not: null }
+    },
+    _count: { id: true },
+  });
+
+  const result = classes
+    .filter(c => c.className)
+    .map(c => ({
+      className: c.className,
+      studentCount: c._count.id
+    }));
+
+  res.json(result);
+});
+
+/**
+ * Get students in a specific class for the admin's college
+ */
+export const getStudentsByClass = asyncHandler(async (req: Request, res: Response) => {
+  const collegeName = (req as any).adminCollegeName;
+  const { className } = req.params;
+
+  if (!collegeName) {
+    return res.status(400).json({ error: 'Admin college not configured' });
+  }
+
+  const students = await prisma.user.findMany({
+    where: {
+      collegeName,
+      className,
+      role: 'STUDENT',
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      gender: true,
+      rollNumber: true,
+      department: true,
+      className: true,
+      createdAt: true,
+      _count: {
+        select: { entries: true }
+      }
+    },
+    orderBy: { rollNumber: 'asc' }
+  });
+
+  const result = students.map(s => ({
+    id: s.id,
+    firstName: s.firstName,
+    lastName: s.lastName,
+    email: s.email,
+    gender: s.gender,
+    rollNumber: s.rollNumber,
+    department: s.department,
+    className: s.className,
+    createdAt: s.createdAt,
+    entryCount: s._count.entries,
+  }));
+
+  res.json(result);
+});
+
+/**
+ * Get full student detail (profile + learning entries + summary)
+ */
+export const getStudentDetail = asyncHandler(async (req: Request, res: Response) => {
+  const collegeName = (req as any).adminCollegeName;
+  const { studentId } = req.params;
+
+  // Verify student belongs to admin's college
+  const student = await prisma.user.findFirst({
+    where: {
+      id: studentId,
+      collegeName,
+      role: 'STUDENT',
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      gender: true,
+      rollNumber: true,
+      department: true,
+      className: true,
+      createdAt: true,
+    }
+  });
+
+  if (!student) {
+    return res.status(404).json({ error: 'Student not found in your college' });
+  }
+
+  // Get learning entries
+  const entries = await prisma.learningEntry.findMany({
+    where: { userId: studentId },
+    orderBy: { completionDate: 'desc' },
+    take: 50,
+  });
+
+  // Calculate summary stats
+  const totalHours = entries.reduce((sum, e) => sum + (e.hoursSpent || 0), 0);
+  const allSkills = new Set(entries.flatMap(e => e.skills));
+  const domains: Record<string, number> = {};
+  const platforms: Record<string, number> = {};
+
+  for (const e of entries) {
+    domains[e.domain] = (domains[e.domain] || 0) + 1;
+    platforms[e.platform] = (platforms[e.platform] || 0) + 1;
+  }
+
+  res.json({
+    student,
+    entries,
+    summary: {
+      totalEntries: entries.length,
+      totalHours,
+      uniqueSkills: allSkills.size,
+      domains,
+      platforms,
+    }
+  });
+});
+
+/**
+ * Get college overview stats for the admin dashboard
+ */
+export const getCollegeOverview = asyncHandler(async (req: Request, res: Response) => {
+  const collegeName = (req as any).adminCollegeName;
+  if (!collegeName) {
+    return res.status(400).json({ error: 'Admin college not configured' });
+  }
+
+  const [totalStudents, classGroups, recentStudents] = await Promise.all([
+    prisma.user.count({
+      where: { collegeName, role: 'STUDENT' }
+    }),
+    prisma.user.groupBy({
+      by: ['className'],
+      where: { collegeName, role: 'STUDENT', className: { not: null } },
+      _count: { id: true },
+    }),
+    prisma.user.findMany({
+      where: { collegeName, role: 'STUDENT' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        className: true,
+        rollNumber: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+  ]);
+
+  // Count total learning entries across all students in the college
+  const totalEntries = await prisma.learningEntry.count({
+    where: {
+      user: { collegeName, role: 'STUDENT' }
+    }
+  });
+
+  res.json({
+    collegeName,
+    totalStudents,
+    totalClasses: classGroups.filter(c => c.className).length,
+    totalEntries,
+    classes: classGroups
+      .filter(c => c.className)
+      .map(c => ({ className: c.className, studentCount: c._count.id })),
+    recentStudents,
+  });
+});

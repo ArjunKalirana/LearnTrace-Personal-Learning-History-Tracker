@@ -18,14 +18,25 @@ model User {
   email            String          @unique
   passwordHash     String          @map("password_hash")
   createdAt        DateTime        @default(now()) @map("created_at")
-  emailVerified      Boolean         @default(false) @map("email_verified")
+  emailVerified      Boolean         @default(true) @map("email_verified")
   verificationToken  String?         @unique @map("verification_token")
   resetToken       String?         @map("reset_token")
   resetTokenExpiry DateTime?       @map("reset_token_expiry")
   refreshToken     String?         @map("refresh_token")
   publicProfileId  String?         @unique @map("public_profile_id")
+
+  // Role & college fields
+  role             String          @default("STUDENT")  // "STUDENT" | "ADMIN"
+  gender           String?                               // "male" | "female" | "other"
+  collegeName      String?         @map("college_name")
+  department       String?
+  className        String?         @map("class_name")    // e.g. "CS-2024-A"
+  rollNumber       String?         @map("roll_number")
+
   entries          LearningEntry[]
 
+  @@index([collegeName, className])
+  @@index([role, collegeName])
   @@map("users")
 }
 

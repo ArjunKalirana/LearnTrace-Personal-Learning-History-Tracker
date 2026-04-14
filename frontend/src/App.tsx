@@ -14,8 +14,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Timeline from './pages/Timeline';
 import EntryDetail from './pages/EntryDetail';
@@ -24,7 +27,8 @@ import BadgeVault from './pages/BadgeVault';
 import Analytics from './pages/Analytics';
 import Heatmap from './pages/Heatmap';
 import Profile from './pages/Profile';
-import VerifyEmail from './pages/VerifyEmail';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ClassroomView from './pages/admin/ClassroomView';
 
 function App() {
   return (
@@ -33,8 +37,13 @@ function App() {
         <BrowserRouter>
           <AuthProvider>
             <Routes>
+              {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+
+              {/* Protected routes */}
               <Route
                 path="/*"
                 element={
@@ -42,16 +51,22 @@ function App() {
                     <Layout>
                       <ErrorBoundary>
                         <Routes>
+                          {/* Student routes */}
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/timeline" element={<Timeline />} />
                           <Route path="/entries/new" element={<AddEntry />} />
                           <Route path="/entries/:id" element={<EntryDetail />} />
                           <Route path="/entries/:id/edit" element={<AddEntry />} />
                           <Route path="/badges" element={<BadgeVault />} />
-                          <Route path="/verify-email" element={<VerifyEmail />} />
                           <Route path="/analytics" element={<Analytics />} />
                           <Route path="/heatmap" element={<Heatmap />} />
                           <Route path="/profile" element={<Profile />} />
+
+                          {/* Admin routes */}
+                          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                          <Route path="/admin/classroom/:className" element={<ClassroomView />} />
+
+                          {/* Default redirect */}
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                       </ErrorBoundary>

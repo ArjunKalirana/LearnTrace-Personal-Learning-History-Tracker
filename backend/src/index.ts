@@ -6,11 +6,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { authenticate } from './middleware/auth';
+import { requireAdmin } from './middleware/adminMiddleware';
 import * as authController from './controllers/authController';
 import * as entryController from './controllers/entryController';
 import * as analyticsController from './controllers/analyticsController';
 import * as userController from './controllers/userController';
 import * as aiController from './controllers/aiController';
+import * as adminController from './controllers/adminController';
 import { upload, handleMulterError } from './utils/upload';
 import { asyncHandler } from './middleware/asyncHandler';
 import logger from './lib/logger';
@@ -36,11 +38,8 @@ const PORT = process.env.PORT || 3001;
 
 const isProd = process.env.NODE_ENV === 'production';
 
-// Railway / Vercel / Render all sit behind a reverse proxy
-// This is required for express-rate-limit to read the real client IP
 app.set('trust proxy', 1);
 
-// General API limiter: 100 requests per 15 minutes (much higher in dev)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProd ? 100 : 5000,
@@ -49,7 +48,6 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Login limiter: 5 requests per 15 minutes per IP+email combo (much higher in dev)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProd ? 5 : 500,
@@ -60,7 +58,6 @@ const loginLimiter = rateLimit({
   validate: false,
 });
 
-// Signup limiter: 3 requests per hour per IP (much higher in dev)
 const signupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: isProd ? 3 : 500,
@@ -69,12 +66,10 @@ const signupLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Health check endpoint (Public, no rate limiting)
+// Health check endpoint
 app.get('/health', async (req, res) => {
   try {
-    // Lightweight DB check
     await prisma.$queryRaw`SELECT 1`;
-    
     res.json({
       status: "ok",
       db: "connected",
@@ -91,9 +86,6 @@ app.get('/health', async (req, res) => {
   }
 });
 
-
-// Normalise FRONTEND_URL — strip trailing slash so CORS origin comparisons
-// never silently fail (e.g. "https://x.vercel.app/" vs "https://x.vercel.app")
 const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 logger.info({ FRONTEND_ORIGIN, raw: process.env.FRONTEND_URL }, '🌐 CORS origin configured');
 
@@ -105,27 +97,20 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// Explicit preflight handler — guarantees OPTIONS always gets CORS headers
 app.options('*', cors(corsOptions));
-// CORS for all other requests
 app.use(cors(corsOptions));
 
-// Middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:", "res.cloudinary.com"],
+      imgSrc: ["'self'", "data:", "blob:", "res.cloudinary.com", "images.unsplash.com"],
       connectSrc: ["'self'", FRONTEND_ORIGIN],
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  hsts: {
-    maxAge: 31536000,
-  },
-  referrerPolicy: {
-    policy: 'strict-origin-when-cross-origin',
-  },
+  hsts: { maxAge: 31536000 },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
 app.use(pinoHttp({ 
@@ -137,25 +122,22 @@ app.use(pinoHttp({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Apply general limiter AFTER cors and body parser!
 app.use(apiLimiter);
 
-// Serve uploaded certificates (Static - not prefixed)
 app.use('/uploads/certificates', express.static(path.join(__dirname, '../uploads/certificates')));
 
 // --- API Routes (v1 Prefix) ---
 const apiRouter = express.Router();
 
+// Auth routes
 apiRouter.post('/auth/signup', signupLimiter, authController.signup);
 apiRouter.post('/auth/login', loginLimiter, authController.login);
 apiRouter.post('/auth/forgot-password', authController.forgotPassword);
 apiRouter.post('/auth/reset-password', authController.resetPassword);
-apiRouter.post('/auth/verify-email', authController.verifyEmail);
-apiRouter.post('/auth/resend-verification', authenticate, authController.resendVerification);
 apiRouter.post('/auth/refresh', authController.refresh);
 apiRouter.get('/auth/me', authenticate, authController.getMe);
 
+// Entry routes
 apiRouter.post('/entries', authenticate, upload.single('certificate'), handleMulterError, entryController.createEntry);
 apiRouter.get('/entries', authenticate, entryController.getEntries);
 apiRouter.get('/entries/metadata', authenticate, entryController.getMetadata);
@@ -163,7 +145,7 @@ apiRouter.get('/entries/:id', authenticate, entryController.getEntryById);
 apiRouter.put('/entries/:id', authenticate, upload.single('certificate'), handleMulterError, entryController.updateEntry);
 apiRouter.delete('/entries/:id', authenticate, entryController.deleteEntry);
 
-
+// Analytics routes
 apiRouter.get('/analytics/summary', authenticate, analyticsController.getSummary);
 apiRouter.get('/analytics/domain-distribution', authenticate, analyticsController.getDomainDistribution);
 apiRouter.get('/analytics/yearly-trend', authenticate, analyticsController.getYearlyTrend);
@@ -171,26 +153,28 @@ apiRouter.get('/analytics/platform-usage', authenticate, analyticsController.get
 apiRouter.get('/analytics/skills-frequency', authenticate, analyticsController.getSkillsFrequency);
 apiRouter.get('/analytics/heatmap', authenticate, analyticsController.getHeatmapData);
 
+// User routes
 apiRouter.get('/users/export', authenticate, userController.exportData);
+apiRouter.get('/portfolio/:publicId', userController.getPortfolio);
+apiRouter.put('/users/public-profile', authenticate, userController.updatePublicProfileId);
 
+// AI routes
 apiRouter.post('/entries/:id/generate-bullets', authenticate, aiController.generateBullets);
 apiRouter.post('/entries/extract-url', authenticate, aiController.extractUrl);
 apiRouter.post('/analytics/skill-gap', authenticate, aiController.analyzeSkillGap);
 
-apiRouter.get('/portfolio/:publicId', userController.getPortfolio);
-apiRouter.put('/users/public-profile', authenticate, userController.updatePublicProfileId);
+// Admin routes
+apiRouter.get('/admin/overview', authenticate, requireAdmin, adminController.getCollegeOverview);
+apiRouter.get('/admin/classes', authenticate, requireAdmin, adminController.getClasses);
+apiRouter.get('/admin/classes/:className/students', authenticate, requireAdmin, adminController.getStudentsByClass);
+apiRouter.get('/admin/students/:studentId', authenticate, requireAdmin, adminController.getStudentDetail);
 
 app.use('/api/v1', apiRouter);
-
 
 // Error handler
 app.use(errorHandler);
 
 const startServer = () => {
-  // Prisma manages connection pooling lazily — no explicit $connect() needed.
-  // The server starts immediately; DB connections are established on first query.
-
-  // Start 24h idempotency key cleanup job
   setInterval(async () => {
     try {
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);

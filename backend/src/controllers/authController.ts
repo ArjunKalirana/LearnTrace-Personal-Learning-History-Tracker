@@ -13,8 +13,13 @@ export const signup = [
     .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
     .matches(/[0-9]/).withMessage('Password must contain at least one number')
     .matches(/[!@#$%^&*]/).withMessage('Password must contain at least one special character (!@#$%^&*)'),
+  body('role').optional().isIn(['STUDENT', 'ADMIN']).withMessage('Role must be STUDENT or ADMIN'),
+  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
+  body('collegeName').optional().trim(),
+  body('department').optional().trim(),
+  body('className').optional().trim(),
+  body('rollNumber').optional().trim(),
 
-  
   async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
@@ -22,8 +27,11 @@ export const signup = [
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { firstName, lastName, email, password } = req.body;
-      const result = await authService.signup({ firstName, lastName, email, password });
+      const { firstName, lastName, email, password, role, gender, collegeName, department, className, rollNumber } = req.body;
+      const result = await authService.signup({
+        firstName, lastName, email, password,
+        role, gender, collegeName, department, className, rollNumber
+      });
       
       res.status(201).json(result);
     } catch (error: any) {
@@ -81,7 +89,6 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   });
 });
 
-
 export const resetPassword = [
   body('token').notEmpty().withMessage('Token is required'),
   body('newPassword')
@@ -90,7 +97,6 @@ export const resetPassword = [
     .matches(/[0-9]/).withMessage('Password must contain at least one number')
     .matches(/[!@#$%^&*]/).withMessage('Password must contain at least one special character (!@#$%^&*)'),
 
-  
   async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
@@ -106,22 +112,6 @@ export const resetPassword = [
     }
   }
 ];
-
-export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const { token } = req.body;
-  if (!token) return res.status(400).json({ error: 'Token is required' });
-
-  const result = await authService.verifyEmail(token);
-  res.json(result);
-});
-
-export const resendVerification = asyncHandler(async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
-  const result = await authService.resendVerification(userId);
-  res.json(result);
-});
 
 export const refresh = async (req: Request, res: Response) => {
   try {

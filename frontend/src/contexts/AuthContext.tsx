@@ -7,8 +7,12 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
-  setSession: (user: User, token: string) => void;
+  signup: (data: {
+    firstName: string; lastName: string; email: string; password: string;
+    role?: string; gender?: string; collegeName?: string; department?: string;
+    className?: string; rollNumber?: string;
+  }) => Promise<void>;
+  setSession: (user: User, token: string, refreshToken?: string) => void;
   refreshUser: () => Promise<void>;
   logout: () => void;
 }
@@ -28,10 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (token && savedUser) {
         try {
           setUser(JSON.parse(savedUser));
-          // Verify token is still valid
           await authAPI.getMe();
         } catch (error) {
-          // Token invalid, clear storage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
@@ -51,8 +53,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(response.user);
   }, []);
 
-  const signup = useCallback(async (firstName: string, lastName: string, email: string, password: string) => {
-    const response = await authAPI.signup({ firstName, lastName, email, password });
+  const signup = useCallback(async (data: {
+    firstName: string; lastName: string; email: string; password: string;
+    role?: string; gender?: string; collegeName?: string; department?: string;
+    className?: string; rollNumber?: string;
+  }) => {
+    const response = await authAPI.signup(data);
     localStorage.setItem('token', response.token);
     localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));

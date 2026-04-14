@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
-import { sendVerificationEmail, sendPasswordResetEmail } from './emailService';
+import { sendPasswordResetEmail } from './emailService';
 import { AppError } from '../utils/appError';
 
 function getJwtSecret() {
@@ -18,6 +18,12 @@ export interface SignupData {
   lastName: string;
   email: string;
   password: string;
+  role?: 'STUDENT' | 'ADMIN';
+  gender?: string;
+  collegeName?: string;
+  department?: string;
+  className?: string;
+  rollNumber?: string;
 }
 
 export interface LoginData {
@@ -25,16 +31,26 @@ export interface LoginData {
   password: string;
 }
 
+const userSelectFields = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  role: true,
+  gender: true,
+  collegeName: true,
+  department: true,
+  className: true,
+  rollNumber: true,
+  createdAt: true,
+};
+
 /**
  * User Registration Service
- * 
- * Creates a new user account with:
- * - Email uniqueness validation
- * - Password hashing using bcrypt (10 salt rounds)
- * - JWT token generation for immediate authentication
+ * Creates a new user account with role and college information.
+ * Email verification is disabled — users are immediately active.
  */
 export const signup = async (data: SignupData) => {
-  // Check if email already exists
   const existingUser = await prisma.user.findUnique({
     where: { email: data.email }
   });
@@ -43,9 +59,7 @@ export const signup = async (data: SignupData) => {
     throw new AppError('Email already registered', 400);
   }
 
-  // Hash password with bcrypt (10 salt rounds for security)
   const passwordHash = await bcrypt.hash(data.password, 10);
-  const verificationToken = crypto.randomUUID();
 
   const user = await prisma.user.create({
     data: {
@@ -53,20 +67,19 @@ export const signup = async (data: SignupData) => {
       lastName: data.lastName.replace(/<[^>]*>/g, '').trim(),
       email: data.email,
       passwordHash,
-      verificationToken
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
       emailVerified: true,
-      createdAt: true
-    }
+      role: data.role || 'STUDENT',
+      gender: data.gender || null,
+      collegeName: data.collegeName || null,
+      department: data.department || null,
+      className: data.className || null,
+      rollNumber: data.rollNumber || null,
+    },
+    select: userSelectFields,
   });
 
   const token = jwt.sign(
-    { userId: user.id, email: user.email },
+    { userId: user.id, email: user.email, role: user.role },
     getJwtSecret(),
     { expiresIn: '7d' }
   );
@@ -82,127 +95,28 @@ export const signup = async (data: SignupData) => {
     data: { refreshToken }
   });
 
-  // Send verification email (async, non-blocking)
-  const verificationUrl = await sendVerificationEmail(user.email, verificationToken, user.firstName);
-
-  // In development, return the verification URL so the frontend can display it
-  const isDev = process.env.NODE_ENV !== 'production';
-
-  return {
-    user,
-    token,
-    refreshToken,
-    ...(isDev && { verificationUrl }),
-  };
-};
-
-/**
- * Verify Email Service
- */
-export const verifyEmail = async (token: string) => {
-  const user = await prisma.user.findUnique({
-    where: { verificationToken: token }
-  });
-
-  if (!user) {
-    throw new AppError('Invalid or expired verification token', 400);
-  }
-
-  const updatedUser = await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      emailVerified: true,
-      verificationToken: null
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      emailVerified: true,
-      createdAt: true
-    }
-  });
-
-  const accessToken = jwt.sign(
-    { userId: updatedUser.id, email: updatedUser.email },
-    getJwtSecret(),
-    { expiresIn: '7d' }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId: updatedUser.id },
-    getJwtSecret(),
-    { expiresIn: '30d' }
-  );
-
-  await prisma.user.update({
-    where: { id: updatedUser.id },
-    data: { refreshToken }
-  });
-
-  return { user: updatedUser, token: accessToken, refreshToken };
-};
-
-/**
- * Resend Verification Email Service
- */
-export const resendVerification = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId }
-  });
-
-  if (!user) {
-    throw new AppError('User not found', 404);
-  }
-
-  if (user.emailVerified) {
-    throw new AppError('Email is already verified', 400);
-  }
-
-  let token = user.verificationToken;
-  if (!token) {
-    token = crypto.randomUUID();
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { verificationToken: token }
-    });
-  }
-
-  // Send verification email
-  sendVerificationEmail(user.email, token, user.firstName).catch(() => {});
-
-  return { message: 'Verification email sent', token };
+  return { user, token, refreshToken };
 };
 
 /**
  * User Login Service
- * 
- * Authenticates user by:
- * - Finding user by email
- * - Comparing provided password with stored hash using bcrypt
- * - Generating JWT token on successful authentication
  */
 export const login = async (data: LoginData) => {
-  // Find user by email
   const user = await prisma.user.findUnique({
     where: { email: data.email }
   });
 
   if (!user) {
-    // Don't reveal if email exists (security best practice)
     throw new AppError('Invalid email or password', 401);
   }
 
-  // Compare password with stored hash
   const isValid = await bcrypt.compare(data.password, user.passwordHash);
-
   if (!isValid) {
     throw new AppError('Invalid email or password', 401);
   }
 
   const token = jwt.sign(
-    { userId: user.id, email: user.email },
+    { userId: user.id, email: user.email, role: user.role },
     getJwtSecret(),
     { expiresIn: '7d' }
   );
@@ -224,8 +138,13 @@ export const login = async (data: LoginData) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      emailVerified: user.emailVerified,
-      createdAt: user.createdAt
+      role: user.role,
+      gender: user.gender,
+      collegeName: user.collegeName,
+      department: user.department,
+      className: user.className,
+      rollNumber: user.rollNumber,
+      createdAt: user.createdAt,
     },
     token,
     refreshToken
@@ -235,20 +154,13 @@ export const login = async (data: LoginData) => {
 export const getUserById = async (userId: string) => {
   return prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      emailVerified: true,
-      createdAt: true
-    }
+    select: userSelectFields,
   });
 };
 
 export const forgotPassword = async (email: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return null; // Don't throw exception to prevent email enumeration
+  if (!user) return null;
 
   const resetToken = crypto.randomBytes(32).toString('hex');
   const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -259,7 +171,6 @@ export const forgotPassword = async (email: string) => {
     data: { resetToken: hashedToken, resetTokenExpiry }
   });
   
-  // Send reset email (async, non-blocking)
   sendPasswordResetEmail(user.email, resetToken, user.firstName).catch(() => {});
 
   return resetToken;
@@ -283,7 +194,7 @@ export const resetPassword = async (token: string, newPassword: string) => {
       passwordHash,
       resetToken: null,
       resetTokenExpiry: null,
-      refreshToken: null // invalidate existing sessions
+      refreshToken: null
     }
   });
 };
@@ -301,7 +212,7 @@ export const refresh = async (refreshToken: string) => {
     if (!user) throw new Error('Invalid refresh token');
 
     const newToken = jwt.sign(
-       { userId: user.id, email: user.email },
+       { userId: user.id, email: user.email, role: user.role },
        getJwtSecret(),
        { expiresIn: '7d' }
     );

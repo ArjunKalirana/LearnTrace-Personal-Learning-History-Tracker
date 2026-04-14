@@ -1,0 +1,15 @@
+[build]
+# Force Railway to use the Dockerfile in this directory.
+# Without this, Railpack auto-detects from the repo root and gets confused
+# by the monorepo layout (backend/ + frontend/ + extension/).
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Railway injects PORT automatically — your Express app reads process.env.PORT
+# so this is just documentation. healthcheckPath tells Railway when the
+# container is ready so it doesn't route traffic too early.
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

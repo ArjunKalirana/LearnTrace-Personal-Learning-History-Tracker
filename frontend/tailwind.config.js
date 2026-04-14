@@ -8,27 +8,20 @@ export default {
     extend: {
       colors: {
         primary: '#F59E0B',
-        'success-green': '#27AE60',
-        'soft-purple': '#9B59B6',
-        'warm-orange': '#E67E22',
-        'alert-red': '#E74C3C',
-        background: '#F8F9FA',
-        card: '#FFFFFF',
+        'success-green': '#10B981',
+        'soft-purple': '#8B5CF6',
+        'warm-orange': '#F97316',
+        'alert-red': '#EF4444',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-      fontSize: {
-        'h1': ['32px', { lineHeight: '1.2', fontWeight: '700' }],
-        'h2': ['24px', { lineHeight: '1.3', fontWeight: '600' }],
-        'h3': ['20px', { lineHeight: '1.4', fontWeight: '600' }],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       borderRadius: {
         'card': '12px',
-        'button': '8px',
+        'button': '10px',
       },
       boxShadow: {
-        'soft': '0 2px 8px rgba(0, 0, 0, 0.08)',
+        'soft': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
       },
     },
   },

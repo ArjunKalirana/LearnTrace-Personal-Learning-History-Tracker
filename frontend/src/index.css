@@ -1,9 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
   body {
-    @apply bg-background text-[#1C1917] font-sans;
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+}
+
+@layer components {
+  /* Smooth page transitions */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+  }
+}
+
+@layer utilities {
+  /* Custom animation */
+  @keyframes progress {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  .animate-progress {
+    animation: progress 3s linear forwards;
   }
 }
