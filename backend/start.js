@@ -40,7 +40,9 @@ try {
   console.log("✅ Database synced successfully. Starting app...");
   
   // Overwrite the global process.env so the Express app uses the sanitized vars too!
-  process.env = sanitizedEnv;
+  // Instead of reassigning, strictly manipulate the native process.env object properties
+  Object.keys(process.env).forEach(k => delete process.env[k]);
+  Object.assign(process.env, sanitizedEnv);
   
   // Start the main application
   require('./dist/index.js');

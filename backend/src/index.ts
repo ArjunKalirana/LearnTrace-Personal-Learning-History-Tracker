@@ -90,7 +90,12 @@ const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:5173').re
 logger.info({ FRONTEND_ORIGIN, raw: process.env.FRONTEND_URL }, '🌐 CORS origin configured');
 
 const corsOptions = {
-  origin: FRONTEND_ORIGIN,
+  origin: [
+    FRONTEND_ORIGIN, 
+    'http://localhost:5173', 
+    'https://learn-trace-personal-learning-histo.vercel.app',
+    'https://learn-trace-personal-learning-history-tracker.vercel.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
   credentials: true,
