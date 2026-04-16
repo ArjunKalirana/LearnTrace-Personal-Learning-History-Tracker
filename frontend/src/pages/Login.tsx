@@ -38,8 +38,8 @@ export default function Login() {
       {/* Left — Image Panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1523050854058-8df90110c7f1?w=1200&q=80&auto=format"
-          alt="Students studying in university library"
+          src="/assets/login-bg.png"
+          alt="Modern learning environment"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-900/50 to-amber-900/30" />

@@ -125,7 +125,7 @@ function StudentAvatar({
         color={isSelected ? '#3b82f6' : '#ffffff'}
         anchorX="center"
         anchorY="middle"
-        font="/fonts/Inter.woff2"
+        font="https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bslnt%2Cwght%5D.ttf"
         outlineWidth={0.018}
         outlineColor={isSelected ? '#ffffff' : '#1f2937'}
       >
@@ -138,7 +138,7 @@ function StudentAvatar({
         color={isSelected ? '#93c5fd' : '#9ca3af'}
         anchorX="center"
         anchorY="middle"
-        font="/fonts/Inter.woff2"
+        font="https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bslnt%2Cwght%5D.ttf"
         outlineWidth={0.012}
         outlineColor="#111827"
       >
@@ -158,7 +158,7 @@ function StudentAvatar({
             color="white"
             anchorX="center"
             anchorY="middle"
-            font="/fonts/Inter.woff2"
+            font="https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/Inter%5Bslnt%2Cwght%5D.ttf"
           >
             {student.entryCount}
           </Text>
@@ -415,8 +415,12 @@ export default function ClassroomView() {
         >
           <Canvas
             shadows
+            dpr={[1, 2]}
             camera={{ position: [0, camY, camZ], fov: 45 }}
-            gl={{ antialias: true, alpha: false }}
+            gl={{ antialias: true, alpha: false, preserveDrawingBuffer: false }}
+            onCreated={({ gl }) => {
+              gl.setClearColor('#050810');
+            }}
           >
             <Suspense fallback={<LoadingPlaceholder />}>
               <color attach="background" args={['#050810']} />
