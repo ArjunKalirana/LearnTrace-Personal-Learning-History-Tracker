@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
+// Build Version: 2026.04.16.2159 (Cache Busting)
 import { useParams, Link } from 'react-router-dom';
 import { adminAPI } from '../../utils/api';
 import type { StudentSummary, StudentDetail } from '../../types';
@@ -74,19 +75,23 @@ function StudentAvatar({
 
   const timeOffset = useRef(Math.random() * Math.PI * 2);
 
-  useFrame((state) => {
+  const initialTime = useRef(performance.now() / 1000);
+
+  useFrame(() => {
     if (!group.current) return;
+    const elapsedTime = (performance.now() / 1000) - initialTime.current;
+
     if (isSelected) {
       group.current.position.y = THREE.MathUtils.lerp(
         group.current.position.y,
-        0.25 + Math.sin(state.clock.elapsedTime * 2) * 0.04,
+        0.25 + Math.sin(elapsedTime * 2) * 0.04,
         0.08,
       );
       group.current.rotation.y += 0.01;
     } else {
       group.current.position.y = THREE.MathUtils.lerp(
         group.current.position.y,
-        Math.sin(state.clock.elapsedTime + timeOffset.current) * 0.02,
+        Math.sin(elapsedTime + timeOffset.current) * 0.02,
         0.08,
       );
       group.current.rotation.y = THREE.MathUtils.lerp(
@@ -104,7 +109,7 @@ function StudentAvatar({
         onPointerOut={() => { document.body.style.cursor = 'default'; }}
       >
         {/* The primitive — NO scale prop here; normaliseClone already set it */}
-        <primitive object={clone} />
+        {clone && <primitive object={clone} />}
 
         {/* Selection ring on the floor */}
         {isSelected && (
