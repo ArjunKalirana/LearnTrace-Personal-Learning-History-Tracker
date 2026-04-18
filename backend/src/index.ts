@@ -90,12 +90,23 @@ const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:5173').re
 logger.info({ FRONTEND_ORIGIN, raw: process.env.FRONTEND_URL }, '🌐 CORS origin configured');
 
 const corsOptions = {
-  origin: [
-    FRONTEND_ORIGIN, 
-    'http://localhost:5173', 
-    'https://learn-trace-personal-learning-histo.vercel.app',
-    'https://learn-trace-personal-learning-history-tracker.vercel.app'
-  ],
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, Postman, Railway health checks)
+    if (!origin) return callback(null, true);
+    
+    const allowed = [
+      FRONTEND_ORIGIN,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      // Add your actual Vercel deployment URL here:
+      'https://learn-trace-personal-learning-histo.vercel.app',
+      'https://learn-trace-personal-learning-history-tracker.vercel.app',
+    ].filter(Boolean);
+
+    // Also allow any *.vercel.app preview deployment
+    const isAllowed = allowed.includes(origin) || origin.endsWith('.vercel.app');
+    callback(null, isAllowed);
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
   credentials: true,
@@ -108,12 +119,16 @@ app.use(cors(corsOptions));
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:", "res.cloudinary.com", "images.unsplash.com"],
-      connectSrc: ["'self'", FRONTEND_ORIGIN],
+      defaultSrc:    ["'self'"],
+      scriptSrc:     ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      workerSrc:     ["'self'", "blob:"],
+      imgSrc:        ["'self'", "data:", "blob:", "res.cloudinary.com", "images.unsplash.com"],
+      connectSrc:    ["'self'", FRONTEND_ORIGIN, "blob:"],
+      mediaSrc:      ["'self'", "blob:"],
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false,   // Required for SharedArrayBuffer (Three.js uses this)
   hsts: { maxAge: 31536000 },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
