@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Download, LogOut, User as UserIcon, Mail, Shield, Database, Activity, Trophy, Code, Info, Trash2, AlertTriangle } from 'lucide-react';
-import { analyticsAPI, userAPI } from '../utils/api';
+import { Download, LogOut, User as UserIcon, Mail, Shield, Database, Activity, Trophy, Code, Info, Trash2, AlertTriangle, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { analyticsAPI, userAPI, authAPI } from '../utils/api';
 import { DashboardSummary } from '../types';
 // date-fns format import removed as it was unused in this version
 
@@ -10,6 +10,19 @@ export default function Profile() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [changingPw, setChangingPw] = useState(false);
+  const [currentPw,  setCurrentPw]  = useState('');
+  const [newPw,      setNewPw]      = useState('');
+  const [confirmPw,  setConfirmPw]  = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw,     setShowNewPw]     = useState(false);
+  const [pwError,   setPwError]   = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyMsg,     setVerifyMsg]     = useState('');
 
   useEffect(() => {
     if (user) {
@@ -35,6 +48,46 @@ export default function Profile() {
       alert('Failed to export data. Please try again.');
     } finally {
       setExporting(null);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess('');
+
+    if (newPw !== confirmPw) {
+      setPwError('New passwords do not match');
+      return;
+    }
+    const pwRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
+    if (!pwRegex.test(newPw)) {
+      setPwError('Password must be 8+ chars with uppercase, number, and special character');
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await authAPI.changePassword(currentPw, newPw);
+      setPwSuccess('Password changed successfully! You may need to log in again on other devices.');
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      setChangingPw(false);
+    } catch (err: any) {
+      setPwError(err.response?.data?.error || 'Failed to change password');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setVerifyLoading(true);
+    setVerifyMsg('');
+    try {
+      await authAPI.sendVerification();
+      setVerifyMsg('Verification email sent! Check your inbox.');
+    } catch (err: any) {
+      setVerifyMsg(err.response?.data?.error || 'Failed to send verification email');
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -167,27 +220,130 @@ export default function Profile() {
 
         {/* Right Side: Account Actions */}
         <aside className="space-y-8">
-            <div className="bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm space-y-8">
-                <div>
-                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Security & Session</h3>
-                   <div className="space-y-4">
-                       <div className="p-4 bg-gray-50 rounded-2xl flex items-center gap-3">
-                           <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                           <span className="text-xs font-bold text-gray-700">Active Session</span>
-                       </div>
-                   </div>
-                </div>
+<div className="bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm space-y-6">
+  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Security</h3>
 
-                <div className="h-px bg-gray-50" />
+  {/* Email verification status */}
+  {user.emailVerified === false && (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+      <p className="text-sm font-bold text-amber-800 mb-1">Email not verified</p>
+      <p className="text-xs text-amber-700 mb-3">Verify your email to secure your account.</p>
+      {verifyMsg && (
+        <p className="text-xs font-semibold text-amber-900 mb-2">{verifyMsg}</p>
+      )}
+      <button
+        onClick={handleResendVerification}
+        disabled={verifyLoading}
+        className="text-xs font-bold text-amber-700 underline underline-offset-2 hover:text-amber-900 disabled:opacity-50"
+      >
+        {verifyLoading ? 'Sending...' : 'Resend verification email'}
+      </button>
+    </div>
+  )}
 
-                <button
-                    onClick={logout}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all active:scale-95"
-                >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                </button>
-            </div>
+  {user.emailVerified !== false && (
+    <div className="p-4 bg-emerald-50 rounded-2xl flex items-center gap-3 border border-emerald-100">
+      <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+      <span className="text-xs font-bold text-emerald-700">Email verified</span>
+    </div>
+  )}
+
+  {/* Active session indicator */}
+  <div className="p-4 bg-gray-50 rounded-2xl flex items-center gap-3">
+    <div className="h-2 w-2 rounded-full bg-emerald-500" />
+    <span className="text-xs font-bold text-gray-700">Active Session</span>
+  </div>
+
+  {/* Change Password toggle */}
+  {!changingPw ? (
+    <button
+      onClick={() => { setChangingPw(true); setPwError(''); setPwSuccess(''); }}
+      className="w-full flex items-center justify-center gap-2 py-3.5 bg-gray-50 border border-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-100 transition-all text-sm"
+    >
+      <Lock className="h-4 w-4" />
+      Change Password
+    </button>
+  ) : (
+    <form onSubmit={handleChangePassword} className="space-y-3">
+      <p className="text-sm font-bold text-gray-800">Change Password</p>
+
+      {pwError   && <p className="text-xs text-red-600 font-semibold bg-red-50 p-3 rounded-xl">{pwError}</p>}
+      {pwSuccess  && <p className="text-xs text-emerald-700 font-semibold bg-emerald-50 p-3 rounded-xl">{pwSuccess}</p>}
+
+      {/* Current password */}
+      <div className="relative">
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          type={showCurrentPw ? 'text' : 'password'}
+          placeholder="Current password"
+          value={currentPw}
+          onChange={e => setCurrentPw(e.target.value)}
+          required
+          className="block w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+        />
+        <button type="button" tabIndex={-1}
+          onClick={() => setShowCurrentPw(!showCurrentPw)}
+          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400">
+          {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {/* New password */}
+      <div className="relative">
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          type={showNewPw ? 'text' : 'password'}
+          placeholder="New password"
+          value={newPw}
+          onChange={e => setNewPw(e.target.value)}
+          required
+          className="block w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+        />
+        <button type="button" tabIndex={-1}
+          onClick={() => setShowNewPw(!showNewPw)}
+          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400">
+          {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {/* Confirm new password */}
+      <input
+        type="password"
+        placeholder="Confirm new password"
+        value={confirmPw}
+        onChange={e => setConfirmPw(e.target.value)}
+        required
+        className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+      />
+
+      <p className="text-[10px] text-gray-400 font-medium">
+        Must be 8+ chars with 1 uppercase, 1 number, 1 special character.
+      </p>
+
+      <div className="flex gap-2 pt-1">
+        <button type="button"
+          onClick={() => { setChangingPw(false); setCurrentPw(''); setNewPw(''); setConfirmPw(''); setPwError(''); }}
+          className="flex-1 py-3 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">
+          Cancel
+        </button>
+        <button type="submit" disabled={pwLoading}
+          className="flex-1 py-3 text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-all disabled:opacity-50">
+          {pwLoading ? 'Saving...' : 'Save'}
+        </button>
+      </div>
+    </form>
+  )}
+
+  <div className="h-px bg-gray-100" />
+
+  <button
+    onClick={logout}
+    className="w-full flex items-center justify-center gap-3 py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all active:scale-95"
+  >
+    <LogOut className="h-4 w-4" />
+    Logout
+  </button>
+</div>
 
             <div className="bg-red-50/30 rounded-[32px] border border-red-100 p-8 space-y-6">
                 <div className="flex items-center gap-3 text-red-600">

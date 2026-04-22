@@ -31,6 +31,7 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ClassroomIndex from './pages/admin/ClassroomIndex';
 import ClassroomView from './pages/admin/ClassroomView';
+import EmailVerified from './pages/EmailVerified';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/email-verified" element={<EmailVerified />} />
 
               {/* Protected routes */}
               <Route

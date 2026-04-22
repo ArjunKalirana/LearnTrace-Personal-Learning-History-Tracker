@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BookOpen, Clock, Flame, Plus, ArrowUpRight, Calendar, Layers, RefreshCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SkeletonCard, SkeletonStat } from '../components/Skeleton';
@@ -5,13 +6,48 @@ import { LearningEntry } from '../types';
 import { format } from 'date-fns';
 import { useSummary, useDomainDistribution } from '../hooks/useAnalytics';
 import { useAuth } from '../contexts/AuthContext';
+import { authAPI } from '../utils/api';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data: summary, isLoading, isError, refetch } = useSummary();
+  const [verifyMsg, setVerifyMsg] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
+  const handleResendVerification = async () => {
+    setVerifyLoading(true);
+    try {
+      await authAPI.sendVerification();
+      setVerifyMsg('Verification email sent! Check your inbox.');
+    } catch {
+      setVerifyMsg('Could not send email. Try again from your Profile page.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
+      {user?.emailVerified === false && (
+        <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-800">
+              Please verify your email address
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Check your inbox for a verification link from LearnTrace.
+              {verifyMsg && <span className="ml-2 font-semibold">{verifyMsg}</span>}
+            </p>
+          </div>
+          <button
+            onClick={handleResendVerification}
+            disabled={verifyLoading}
+            className="flex-shrink-0 text-xs font-bold text-amber-700 underline underline-offset-2 hover:text-amber-900 disabled:opacity-50 whitespace-nowrap"
+          >
+            {verifyLoading ? 'Sending...' : 'Resend email'}
+          </button>
+        </div>
+      )}
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 p-8 lg:p-10">
         <img
