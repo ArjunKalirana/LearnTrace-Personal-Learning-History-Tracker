@@ -93,6 +93,7 @@ export const authAPI = {
     firstName: string; lastName: string; email: string; password: string;
     role?: string; gender?: string; collegeName?: string; department?: string;
     className?: string; rollNumber?: string;
+    yearOfStudy?: string; assignedClass?: string;
   }): Promise<AuthResponse> => {
     const response = await api.post('/auth/signup', data);
     return response.data;
@@ -115,6 +116,14 @@ export const authAPI = {
   },
   refresh: async (refreshToken: string): Promise<{ token: string; refreshToken: string }> => {
     const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+    return response.data;
+  },
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+    return response.data;
+  },
+  sendVerification: async (): Promise<{ message: string }> => {
+    const response = await api.post('/auth/send-verification');
     return response.data;
   },
 };

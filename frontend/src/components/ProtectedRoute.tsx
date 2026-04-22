@@ -21,8 +21,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect admin to admin dashboard if they try to access root
-  if (user.role === 'ADMIN' && location.pathname === '/dashboard') {
+  // Redirect admin/staff to admin dashboard if they try to access root
+  if (['ADMIN', 'HOD', 'TEACHER'].includes(user.role) && location.pathname === '/dashboard') {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -47,7 +47,7 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
   
-  if (user.role !== 'ADMIN') {
+  if (!['ADMIN', 'HOD', 'TEACHER'].includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   

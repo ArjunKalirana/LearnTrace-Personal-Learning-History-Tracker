@@ -35,7 +35,7 @@ export const Layout = ({ children }: LayoutProps) => {
     navigate('/login');
   };
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'HOD' || user?.role === 'TEACHER';
 
   const studentNav = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

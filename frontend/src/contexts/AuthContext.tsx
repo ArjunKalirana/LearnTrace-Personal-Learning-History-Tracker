@@ -11,6 +11,7 @@ interface AuthContextType {
     firstName: string; lastName: string; email: string; password: string;
     role?: string; gender?: string; collegeName?: string; department?: string;
     className?: string; rollNumber?: string;
+    yearOfStudy?: string; assignedClass?: string;
   }) => Promise<void>;
   setSession: (user: User, token: string, refreshToken?: string) => void;
   refreshUser: () => Promise<void>;
@@ -57,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     firstName: string; lastName: string; email: string; password: string;
     role?: string; gender?: string; collegeName?: string; department?: string;
     className?: string; rollNumber?: string;
+    yearOfStudy?: string; assignedClass?: string;
   }) => {
     const response = await authAPI.signup(data);
     localStorage.setItem('token', response.token);
