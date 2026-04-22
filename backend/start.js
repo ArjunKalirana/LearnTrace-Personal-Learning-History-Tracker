@@ -29,15 +29,25 @@ if (!dbUrl) {
 console.log("✅ DATABASE_URL is present and sanitized! (Length: " + dbUrl.length + ")");
 
 try {
-  console.log("🚀 Running database push (npx prisma db push)...");
+  console.log("🚀 Running database migrations (npx prisma migrate deploy)...");
   
   // Explicitly inject the completely sanitized environment.
-  execSync('npx prisma db push --accept-data-loss', { 
-    stdio: 'inherit',
-    env: sanitizedEnv
-  });
-  
-  console.log("✅ Database synced successfully. Starting app...");
+  try {
+    execSync('npx prisma migrate deploy', { 
+      stdio: 'inherit',
+      env: sanitizedEnv
+    });
+    console.log("✅ Migrations applied successfully. Starting app...");
+  } catch (migrationErr) {
+    // Fallback: if migrate deploy fails (e.g. no migration history table from previous db push era),
+    // use db push to sync schema and continue. Next deploy will use migrate deploy cleanly.
+    console.warn("⚠️ prisma migrate deploy failed, falling back to prisma db push...");
+    execSync('npx prisma db push --accept-data-loss', { 
+      stdio: 'inherit',
+      env: sanitizedEnv
+    });
+    console.log("✅ Database synced via db push fallback. Starting app...");
+  }
   
   // Overwrite the global process.env so the Express app uses the sanitized vars too!
   // Instead of reassigning, strictly manipulate the native process.env object properties
