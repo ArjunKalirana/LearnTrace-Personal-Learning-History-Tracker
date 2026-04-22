@@ -12,31 +12,38 @@ datasource db {
 }
 
 model User {
-  id           String          @id @default(uuid())
-  firstName    String          @map("first_name")
-  lastName         String          @map("last_name")
-  email            String          @unique
-  passwordHash     String          @map("password_hash")
-  createdAt        DateTime        @default(now()) @map("created_at")
-  emailVerified      Boolean         @default(true) @map("email_verified")
-  verificationToken  String?         @unique @map("verification_token")
-  resetToken       String?         @map("reset_token")
-  resetTokenExpiry DateTime?       @map("reset_token_expiry")
-  refreshToken     String?         @map("refresh_token")
-  publicProfileId  String?         @unique @map("public_profile_id")
+  id                String    @id @default(uuid())
+  firstName         String    @map("first_name")
+  lastName          String    @map("last_name")
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  verificationToken String?   @unique @map("verification_token")
+  resetToken        String?   @map("reset_token")
+  resetTokenExpiry  DateTime? @map("reset_token_expiry")
+  refreshToken      String?   @map("refresh_token")
+  publicProfileId   String?   @unique @map("public_profile_id")
 
-  // Role & college fields
-  role             String          @default("STUDENT")  // "STUDENT" | "ADMIN"
-  gender           String?                               // "male" | "female" | "other"
-  collegeName      String?         @map("college_name")
-  department       String?
-  className        String?         @map("class_name")    // e.g. "CS-2024-A"
-  rollNumber       String?         @map("roll_number")
+  // role: "STUDENT" | "TEACHER" | "HOD" | "ADMIN"
+  // STUDENT  — one class, tracked by className
+  // TEACHER  — manages one class (assigned via assignedClass), sees only that class
+  // HOD      — Head of Department, sees all classes within their department
+  // ADMIN    — legacy super-admin, sees all classes across college
+  role          String   @default("STUDENT")
+  gender        String?
+  collegeName   String?  @map("college_name")
+  department    String?
+  className     String?  @map("class_name")
+  rollNumber    String?  @map("roll_number")
+  yearOfStudy   String?  @map("year_of_study")   // "First Year" | "Second Year" | etc.
+  assignedClass String?  @map("assigned_class")  // For TEACHER: the ONE class they manage
 
-  entries          LearningEntry[]
+  entries LearningEntry[]
 
   @@index([collegeName, className])
   @@index([role, collegeName])
+  @@index([collegeName, department, role])
   @@map("users")
 }
 

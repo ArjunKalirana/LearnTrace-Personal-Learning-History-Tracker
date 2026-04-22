@@ -180,3 +180,49 @@ export const sendPasswordResetEmail = async (
 
   return resetUrl;
 };
+
+/**
+ * Send a verification email to the user (backend-verified flow).
+ * The link hits the backend /api/v1/auth/verify-email endpoint which
+ * marks the email verified and then redirects to the frontend.
+ */
+export async function sendVerificationEmailToUser(
+  email: string,
+  token: string,
+  firstName: string
+): Promise<void> {
+  const BACKEND_URL = (process.env.BACKEND_URL || 'http://localhost:3001').replace(/\/+$/, '');
+  const verifyLink = `${BACKEND_URL}/api/v1/auth/verify-email?token=${token}`;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+      <h2 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:8px">
+        Verify your LearnTrace email
+      </h2>
+      <p style="color:#6b7280;margin-bottom:24px">
+        Hi ${firstName}, click the button below to verify your email address and activate your account.
+      </p>
+      <a href="${verifyLink}"
+         style="display:inline-block;background:#f59e0b;color:#fff;font-weight:700;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:15px">
+        Verify Email Address
+      </a>
+      <p style="margin-top:24px;color:#9ca3af;font-size:13px">
+        Or paste this link in your browser:<br/>
+        <span style="word-break:break-all;color:#374151">${verifyLink}</span>
+      </p>
+      <p style="margin-top:16px;color:#9ca3af;font-size:12px">
+        This link does not expire. If you didn't sign up, ignore this email.
+      </p>
+    </div>
+  `;
+
+  const sent = await sendEmail(email, 'Verify your LearnTrace email address', html);
+
+  if (!sent) {
+    logger.info('─'.repeat(60));
+    logger.info({ email, verifyLink }, '📧 [DEV MODE] Verification link generated');
+    logger.info('─'.repeat(60));
+  } else {
+    logger.info({ email }, '📧 Verification email sent');
+  }
+}

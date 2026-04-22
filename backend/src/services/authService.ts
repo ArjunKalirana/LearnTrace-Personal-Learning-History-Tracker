@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
-import { sendPasswordResetEmail } from './emailService';
+import { sendPasswordResetEmail, sendVerificationEmailToUser } from './emailService';
 import { AppError } from '../utils/appError';
 
 function getJwtSecret() {
@@ -18,12 +18,14 @@ export interface SignupData {
   lastName: string;
   email: string;
   password: string;
-  role?: 'STUDENT' | 'ADMIN';
+  role?: 'STUDENT' | 'TEACHER' | 'HOD' | 'ADMIN';
   gender?: string;
   collegeName?: string;
   department?: string;
   className?: string;
   rollNumber?: string;
+  yearOfStudy?: string;
+  assignedClass?: string;
 }
 
 export interface LoginData {
@@ -42,6 +44,9 @@ const userSelectFields = {
   department: true,
   className: true,
   rollNumber: true,
+  yearOfStudy: true,
+  assignedClass: true,
+  emailVerified: true,
   createdAt: true,
 };
 
@@ -60,6 +65,7 @@ export const signup = async (data: SignupData) => {
   }
 
   const passwordHash = await bcrypt.hash(data.password, 10);
+  const verificationToken = crypto.randomBytes(32).toString('hex');
 
   const user = await prisma.user.create({
     data: {
@@ -67,16 +73,22 @@ export const signup = async (data: SignupData) => {
       lastName: data.lastName.replace(/<[^>]*>/g, '').trim(),
       email: data.email,
       passwordHash,
-      emailVerified: true,
+      emailVerified: false,
+      verificationToken,
       role: data.role || 'STUDENT',
       gender: data.gender || null,
       collegeName: data.collegeName || null,
       department: data.department || null,
       className: data.className || null,
       rollNumber: data.rollNumber || null,
+      yearOfStudy: data.yearOfStudy || null,
+      assignedClass: data.assignedClass || null,
     },
     select: userSelectFields,
   });
+
+  // Fire-and-forget: send verification email (works even without SMTP)
+  sendVerificationEmailToUser(user.email, verificationToken, user.firstName).catch(() => {});
 
   const token = jwt.sign(
     { userId: user.id, email: user.email, role: user.role },
@@ -144,6 +156,9 @@ export const login = async (data: LoginData) => {
       department: user.department,
       className: user.className,
       rollNumber: user.rollNumber,
+      yearOfStudy: user.yearOfStudy,
+      assignedClass: user.assignedClass,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     },
     token,
@@ -231,4 +246,48 @@ export const refresh = async (refreshToken: string) => {
   } catch (error) {
     throw new Error('Invalid refresh token');
   }
+};
+
+// ─── Change Password ────────────────────────────────────────────────
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError('User not found', 404);
+
+  const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!isValid) throw new AppError('Current password is incorrect', 400);
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash, refreshToken: null } // invalidate all sessions
+  });
+};
+
+// ─── Send verification email ────────────────────────────────────────
+export const sendVerificationEmail = async (userId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError('User not found', 404);
+  if (user.emailVerified) throw new AppError('Email is already verified', 400);
+
+  const token = crypto.randomBytes(32).toString('hex');
+  await prisma.user.update({
+    where: { id: userId },
+    data: { verificationToken: token }
+  });
+
+  await sendVerificationEmailToUser(user.email, token, user.firstName);
+};
+
+// ─── Verify email token ─────────────────────────────────────────────
+export const verifyEmail = async (token: string) => {
+  const user = await prisma.user.findFirst({
+    where: { verificationToken: token }
+  });
+
+  if (!user) throw new AppError('Invalid or expired verification link', 400);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, verificationToken: null }
+  });
 };

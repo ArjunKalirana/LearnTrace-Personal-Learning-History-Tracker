@@ -3,82 +3,87 @@ import prisma from '../lib/prisma';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 /**
- * Get distinct classes for the admin's college
+ * Get distinct classes for the staff member's scope
  */
 export const getClasses = asyncHandler(async (req: Request, res: Response) => {
-  const collegeName = (req as any).adminCollegeName;
-  if (!collegeName) {
-    return res.status(400).json({ error: 'Admin college not configured' });
+  const collegeName  = (req as any).adminCollegeName || (req as any).staffCollegeName;
+  const staffRole    = (req as any).staffRole || 'ADMIN';
+  const staffDept    = (req as any).staffDepartment || (req as any).adminDepartment;
+  const staffClass   = (req as any).staffClass; // only set for TEACHER
+
+  if (!collegeName) return res.status(400).json({ error: 'College not configured' });
+
+  // TEACHER: return only their one assigned class
+  if (staffRole === 'TEACHER') {
+    if (!staffClass) return res.json([]);
+    const count = await prisma.user.count({
+      where: { collegeName, className: staffClass, role: 'STUDENT' }
+    });
+    return res.json([{ className: staffClass, studentCount: count }]);
+  }
+
+  // HOD: all classes within their department
+  const whereClause: any = {
+    collegeName,
+    role: 'STUDENT',
+    className: { not: null }
+  };
+  if (staffRole === 'HOD' && staffDept) {
+    whereClause.department = staffDept;
   }
 
   const classes = await prisma.user.groupBy({
     by: ['className'],
-    where: {
-      collegeName,
-      role: 'STUDENT',
-      className: { not: null }
-    },
+    where: whereClause,
     _count: { id: true },
   });
 
-  const result = classes
-    .filter(c => c.className)
-    .map(c => ({
-      className: c.className,
-      studentCount: c._count.id
-    }));
-
-  res.json(result);
+  res.json(
+    classes
+      .filter(c => c.className)
+      .map(c => ({ className: c.className, studentCount: c._count.id }))
+  );
 });
 
 /**
- * Get students in a specific class for the admin's college
+ * Get students in a specific class (scoped by role)
  */
 export const getStudentsByClass = asyncHandler(async (req: Request, res: Response) => {
-  const collegeName = (req as any).adminCollegeName;
+  const collegeName = (req as any).adminCollegeName || (req as any).staffCollegeName;
+  const staffRole   = (req as any).staffRole || 'ADMIN';
+  const staffDept   = (req as any).staffDepartment;
+  const staffClass  = (req as any).staffClass;
   const { className } = req.params;
 
-  if (!collegeName) {
-    return res.status(400).json({ error: 'Admin college not configured' });
+  if (!collegeName) return res.status(400).json({ error: 'College not configured' });
+
+  // TEACHER can only query their assigned class
+  if (staffRole === 'TEACHER' && staffClass && staffClass !== className) {
+    return res.status(403).json({ error: 'You can only view your assigned class' });
+  }
+
+  const whereClause: any = { collegeName, className, role: 'STUDENT' };
+  if (staffRole === 'HOD' && staffDept) {
+    whereClause.department = staffDept;
   }
 
   const students = await prisma.user.findMany({
-    where: {
-      collegeName,
-      className,
-      role: 'STUDENT',
-    },
+    where: whereClause,
     select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      gender: true,
-      rollNumber: true,
-      department: true,
-      className: true,
-      createdAt: true,
-      _count: {
-        select: { entries: true }
-      }
+      id: true, firstName: true, lastName: true, email: true,
+      gender: true, rollNumber: true, department: true,
+      className: true, createdAt: true,
+      _count: { select: { entries: true } }
     },
     orderBy: { rollNumber: 'asc' }
   });
 
-  const result = students.map(s => ({
-    id: s.id,
-    firstName: s.firstName,
-    lastName: s.lastName,
-    email: s.email,
-    gender: s.gender,
-    rollNumber: s.rollNumber,
-    department: s.department,
-    className: s.className,
-    createdAt: s.createdAt,
-    entryCount: s._count.entries,
-  }));
-
-  res.json(result);
+  res.json(students.map(s => ({
+    id: s.id, firstName: s.firstName, lastName: s.lastName,
+    email: s.email, gender: s.gender, rollNumber: s.rollNumber,
+    department: s.department, className: s.className,
+    createdAt: s.createdAt, entryCount: s._count.entries,
+  })));
 });
 
 /**

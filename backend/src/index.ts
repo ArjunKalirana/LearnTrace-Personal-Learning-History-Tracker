@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { authenticate } from './middleware/auth';
-import { requireAdmin } from './middleware/adminMiddleware';
+import { requireAdmin, requireStaff } from './middleware/adminMiddleware';
 import * as authController from './controllers/authController';
 import * as entryController from './controllers/entryController';
 import * as analyticsController from './controllers/analyticsController';
@@ -156,6 +156,9 @@ apiRouter.post('/auth/forgot-password', authController.forgotPassword);
 apiRouter.post('/auth/reset-password', authController.resetPassword);
 apiRouter.post('/auth/refresh', authController.refresh);
 apiRouter.get('/auth/me', authenticate, authController.getMe);
+apiRouter.post('/auth/change-password', authenticate, authController.changePassword);
+apiRouter.post('/auth/send-verification', authenticate, authController.sendVerificationEmail);
+apiRouter.get('/auth/verify-email', authController.verifyEmail);
 
 // Entry routes
 apiRouter.post('/entries', authenticate, upload.single('certificate'), handleMulterError, entryController.createEntry);
@@ -186,9 +189,9 @@ apiRouter.post('/analytics/skill-gap', authenticate, aiController.analyzeSkillGa
 
 // Admin routes
 apiRouter.get('/admin/overview', authenticate, requireAdmin, adminController.getCollegeOverview);
-apiRouter.get('/admin/classes', authenticate, requireAdmin, adminController.getClasses);
-apiRouter.get('/admin/classes/:className/students', authenticate, requireAdmin, adminController.getStudentsByClass);
-apiRouter.get('/admin/students/:studentId', authenticate, requireAdmin, adminController.getStudentDetail);
+apiRouter.get('/admin/classes', authenticate, requireStaff, adminController.getClasses);
+apiRouter.get('/admin/classes/:className/students', authenticate, requireStaff, adminController.getStudentsByClass);
+apiRouter.get('/admin/students/:studentId', authenticate, requireStaff, adminController.getStudentDetail);
 app.use('/api/v1', apiRouter);
 
 // Error handler

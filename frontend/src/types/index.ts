@@ -3,12 +3,15 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'STUDENT' | 'ADMIN';
+  role: 'STUDENT' | 'TEACHER' | 'HOD' | 'ADMIN';
   gender?: string;
   collegeName?: string;
   department?: string;
   className?: string;
   rollNumber?: string;
+  yearOfStudy?: string;
+  assignedClass?: string;
+  emailVerified?: boolean;
   createdAt: string;
 }
 
