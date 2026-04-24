@@ -48,6 +48,7 @@ export default function AddEntry() {
     handleSubmit,
     formState: { errors },
     setValue,
+    getValues,
   } = useForm<FormData>();
 
   useEffect(() => {
@@ -99,18 +100,14 @@ export default function AddEntry() {
         const result = await entriesAPI.extractCertificate(file);
         if (result?.extracted) {
           const e = result.extracted;
-          const currentValues = {
-            title: (document.getElementById('title') as HTMLInputElement)?.value || '',
-            platform: (document.getElementById('platform') as HTMLInputElement)?.value || '',
-            domain: (document.getElementById('domain') as HTMLSelectElement)?.value || '',
-            description: (document.getElementById('description') as HTMLTextAreaElement)?.value || '',
-          };
+          const currentValues = getValues();
 
           // Only autofill fields that are currently empty
-          if (e.title && !currentValues.title.trim()) setValue('title', e.title);
-          if (e.platform && !currentValues.platform.trim()) setValue('platform', e.platform);
-          if (e.domain && !currentValues.domain.trim()) setValue('domain', e.domain);
-          if (e.description && !currentValues.description.trim()) setValue('description', e.description);
+          if (e.title && !currentValues.title?.trim()) setValue('title', e.title, { shouldValidate: true, shouldDirty: true });
+          if (e.platform && !currentValues.platform?.trim()) setValue('platform', e.platform, { shouldValidate: true, shouldDirty: true });
+          if (e.domain && !currentValues.domain?.trim()) setValue('domain', e.domain, { shouldValidate: true, shouldDirty: true });
+          if (e.description && !currentValues.description?.trim()) setValue('description', e.description, { shouldValidate: true, shouldDirty: true });
+          if (e.reflection && !currentValues.reflection?.trim()) setValue('reflection', e.reflection, { shouldValidate: true, shouldDirty: true });
 
           // Only add skills that don't already exist
           if (e.skills && e.skills.length > 0) {

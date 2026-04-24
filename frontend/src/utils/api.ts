@@ -163,6 +163,7 @@ export const entriesAPI = {
       title?: string;
       platform?: string;
       description?: string;
+      reflection?: string;
       skills?: string[];
       domain?: string;
     } | null;

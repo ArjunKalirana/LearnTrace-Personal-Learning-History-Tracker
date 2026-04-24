@@ -287,11 +287,12 @@ Extract the following information from this certificate image and return ONLY a 
 {
   "title": "Full name of the course or certification",
   "platform": "Name of the issuing platform or organization (e.g. Coursera, Udemy, Google, Microsoft)",
-  "description": "A 1-2 sentence description of what was learned",
-  "skills": ["skill1", "skill2", "skill3"],
+  "description": "A detailed 1-2 paragraph description of what was learned based on the certificate text and title.",
+  "reflection": "A thoughtful 2-3 sentence reflection on the importance of this certification, key takeaways, and how these skills can be applied practically.",
+  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
   "domain": "One of: Programming, Data Science, Design, Business, Marketing, Language, Science, Engineering, Art, Other"
 }
-If you cannot determine a field, use null for strings and [] for arrays. Never guess — only extract what is clearly visible.`,
+If you cannot determine a field, infer a reasonable professional description/reflection based on the course title. Use null for strings and [] for arrays if completely unknown. Never guess the title or platform — only extract what is clearly visible.`,
               },
             ],
           },
