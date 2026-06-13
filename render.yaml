@@ -1,0 +1,54 @@
+services:
+  # ──────────────────────────────────────────────
+  # Backend Web Service (Docker)
+  # ──────────────────────────────────────────────
+  - type: web
+    name: learntrace-backend
+    runtime: docker
+    # Path to the backend folder (where the Dockerfile lives)
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # Render auto-injects PORT — your Express app already reads process.env.PORT
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: learntrace-db
+          property: connectionString
+      # ── Set these manually in the Render dashboard after first deploy ──
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false          # e.g. https://your-app.vercel.app
+      # ── Optional: AI Features ──
+      - key: GROQ_API_KEY
+        sync: false
+      # ── Optional: Cloudinary (certificate uploads) ──
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # ── Optional: SMTP / Email Verification ──
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+databases:
+  # ──────────────────────────────────────────────
+  # PostgreSQL Database
+  # ──────────────────────────────────────────────
+  - name: learntrace-db
+    databaseName: learntrace
+    user: learntrace
+    plan: free           # Change to "starter" or higher for production
